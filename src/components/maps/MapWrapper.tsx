@@ -1,11 +1,10 @@
-// src/components/map/MapWrapper.tsx
 'use client';
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <p>Memuat peta...</p>,
+  loading: () => <p>Loading...</p>,
 });
 
 export default function MapWrapper() {
@@ -15,7 +14,7 @@ export default function MapWrapper() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation tidak didukung oleh browser Anda.');
+      setError('Geolocation not supported.');
       setIsLoading(false);
       return;
     }
@@ -31,16 +30,16 @@ export default function MapWrapper() {
       setIsLoading(false);
       switch (geoError.code) {
         case geoError.PERMISSION_DENIED:
-          setError('Location declined');
+          setError('Location permission denied.');
           break;
         case geoError.POSITION_UNAVAILABLE:
-          setError('Location not provide');
+          setError('Location not available.');
           break;
         case geoError.TIMEOUT:
-          setError('Timeout');
+          setError('Location request timed out.');
           break;
         default:
-          setError('Something error');
+          setError('An unknown error occurred.');
           break;
       }
       console.error('Geolocation Error:', geoError);
@@ -59,18 +58,18 @@ export default function MapWrapper() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-lg font-semibold">Search your location...</p>
-        <p className="text-sm text-gray-500">Please add location permission.</p>
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <p className="text-lg font-semibold">Searching for your location...</p>
+        <p className="text-sm text-gray-500">Please grant location permission.</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="w-full h-3/4 p-4 z-10">
       {error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-2 rounded-md shadow-lg z-20 animate-fade-in-down max-w-sm text-center">
-          <p className="font-medium">Perhatian:</p>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-2 rounded-md z-20 animate-fade-in-down max-w-sm text-center">
+          <p className="font-medium">Warning:</p>
           <p className="text-sm">{error}</p>
         </div>
       )}
