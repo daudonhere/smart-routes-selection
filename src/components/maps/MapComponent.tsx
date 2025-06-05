@@ -24,7 +24,7 @@ function AutoZoom({ userLocation }: { userLocation: [number, number] }) {
   const map = useMap();
 
   useEffect(() => {
-    map.setView(userLocation, 18); // Zoom maksimal
+    map.setView(userLocation, 16);
   }, [userLocation, map]);
 
   return null;
@@ -46,7 +46,7 @@ export default function MapComponent({ center, zoom = 13, userLocation }: MapPro
   }
 
   return (
-    <MapContainer center={mapCenter} zoom={zoom} scrollWheelZoom={true} className="h-full w-full rounded-t-lg">
+    <MapContainer center={mapCenter} zoom={zoom} scrollWheelZoom={true} className="h-full w-full rounded-t-4xl">
       <TileLayer
         url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
       />

@@ -66,7 +66,7 @@ export default function MapWrapper() {
   }
 
   return (
-    <div className="w-full h-3/4 p-4 z-10">
+    <div className="w-full full">
       {error && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-2 rounded-md z-20 animate-fade-in-down max-w-sm text-center">
           <p className="font-medium">Warning:</p>
