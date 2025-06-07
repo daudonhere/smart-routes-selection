@@ -4,14 +4,17 @@ import { useRouteStore } from '@/stores/routesStore';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <div className="flex justify-center items-center h-full w-full bg-background-secondary"><p className="text-text-primary">Loading Map...</p></div>,
+  loading: () => <div className="flex justify-center items-center h-full w-full bg-background-secondary"><p className="text-text-primary">Memuat Peta...</p></div>,
 });
 
 export default function MapWrapper() {
   const userLocation = useRouteStore((state) => state.userLocation);
+  const departurePoint = useRouteStore((state) => state.departurePoint);
   const destinationPoint = useRouteStore((state) => state.destinationPoint);
   const routes = useRouteStore((state) => state.routes);
-  const setDestinationFromMapClick = useRouteStore((state) => state.setDestinationFromMapClick);
+  const transportMode = useRouteStore((state) => state.transportMode);
+  const updateLocationFromMap = useRouteStore((state) => state.updateLocationFromMap);
+  const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
 
   return (
@@ -23,9 +26,13 @@ export default function MapWrapper() {
       )}
       <MapComponent
         userLocation={userLocation}
-        destination={destinationPoint}
+        departurePoint={departurePoint}
+        destinationPoint={destinationPoint}
         routes={routes}
-        onMapClick={setDestinationFromMapClick}
+        transportMode={transportMode}
+        onMarkerDragEnd={updateLocationFromMap}
+        onMapClick={(latlng) => updateLocationFromMap(latlng, 'destination')}
+        onRouteSelect={setActiveRoute}
       />
     </div>
   );

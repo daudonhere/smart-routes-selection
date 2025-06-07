@@ -6,6 +6,7 @@ import { useRouteStore } from "@/stores/routesStore";
 import { useEffect } from "react";
 
 export default function Home() {
+  // Panggil `initializeLocation` sekali saat komponen dimuat
   const initializeLocation = useRouteStore((state) => state.initializeLocation);
   const isMapLoading = useRouteStore((state) => state.isMapLoading);
 

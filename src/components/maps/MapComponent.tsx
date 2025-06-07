@@ -1,40 +1,51 @@
 'use client';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, Tooltip, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-compass/dist/leaflet-compass.min.css';
 import L from 'leaflet';
 import { useEffect, useRef } from 'react';
-import { RouteInfo } from '@/stores/routesStore';
+import { RouteInfo, TransportMode } from '@/stores/routesStore';
+import 'leaflet-compass';
 
 const userMarkerIcon = new L.Icon({
-  iconUrl: 'maps/marker.png',
-  iconRetinaUrl: 'maps/marker.png',
+  iconUrl: '/maps/marker.png',
+  iconRetinaUrl: '/maps/marker.png',
   iconSize: [35, 61],
-  iconAnchor: [12, 41],
+  iconAnchor: [17, 61],
   popupAnchor: [1, -34],
-  shadowUrl: undefined,
-  shadowAnchor: [0, 0]
 });
 const destinationMarkerIcon = new L.Icon({
-  iconUrl: 'maps/marker.png',
-  iconRetinaUrl: 'maps/marker.png',
+  iconUrl: '/maps/marker.png',
+  iconRetinaUrl: '/maps/marker.png',
   iconSize: [35, 61],
-  iconAnchor: [12, 41],
+  iconAnchor: [17, 61],
   popupAnchor: [1, -34],
-  shadowUrl: undefined,
-  shadowAnchor: [0, 0]
 });
-
 
 interface MapProps {
   userLocation: [number, number] | null;
-  destination: [number, number] | null;
+  departurePoint: [number, number] | null;
+  destinationPoint: [number, number] | null;
+  transportMode: TransportMode;
   onMapClick: (latlng: L.LatLng) => void;
+  onMarkerDragEnd: (latlng: L.LatLng, type: 'departure' | 'destination') => void;
+  onRouteSelect: (routeId: string) => void;
   routes: RouteInfo[];
 }
 
-function AutoZoomPan({ userLocation, destination, routes }: { userLocation: [number, number] | null, destination: [number, number] | null, routes: RouteInfo[] }) {
+function MapController({ departurePoint, destinationPoint, routes }: { departurePoint: [number, number] | null, destinationPoint: [number, number] | null, routes: RouteInfo[] }) {
   const map = useMap();
   const prevBoundsRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const compassControl = L.control.compass({
+        autoActive: true,
+        showDigit: true,
+        position: 'topright'
+    });
+    map.addControl(compassControl);
+    return () => { map.removeControl(compassControl); };
+  }, [map]);
 
   useEffect(() => {
     if (routes && routes.length > 0) {
@@ -45,63 +56,68 @@ function AutoZoomPan({ userLocation, destination, routes }: { userLocation: [num
         map.fitBounds(bounds, { padding: [50, 50] });
         prevBoundsRef.current = boundsKey;
       }
-    } 
-    else if (userLocation && destination) {
-      const bounds = L.latLngBounds([userLocation, destination]);
-      const boundsKey = bounds.toBBoxString();
-      if(prevBoundsRef.current !== boundsKey) {
-        map.fitBounds(bounds, { padding: [50, 50] });
-        prevBoundsRef.current = boundsKey;
-      }
-    } 
-    else if (userLocation) {
-        const currentZoom = map.getZoom();
-        const targetZoom = 16;
-        if (!map.getBounds().contains(userLocation) || currentZoom < 14) {
-             map.setView(userLocation, targetZoom);
+    } else {
+        const points: L.LatLngExpression[] = [];
+        if (departurePoint) points.push(departurePoint);
+        if (destinationPoint) points.push(destinationPoint);
+        if (points.length > 1) {
+            const bounds = L.latLngBounds(points);
+            const boundsKey = bounds.toBBoxString();
+            if(prevBoundsRef.current !== boundsKey) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+                prevBoundsRef.current = boundsKey;
+            }
         }
     }
-  }, [userLocation, destination, routes, map]);
+  }, [departurePoint, destinationPoint, routes, map]);
 
   return null;
 }
 
-function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
-  useMapEvents({
-    click(e) {
-      onMapClick(e.latlng);
-    },
-  });
-  return null;
-}
+export default function MapComponent({
+    userLocation,
+    departurePoint,
+    destinationPoint,
+    transportMode,
+    onMapClick,
+    onMarkerDragEnd,
+    onRouteSelect,
+    routes
+}: MapProps) {
+  const mapCenter = userLocation || [-6.2088, 106.8456]; // Default Jakarta
 
-export default function MapComponent({ userLocation, destination, onMapClick, routes }: MapProps) {
-  useEffect(() => {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: '/maps/marker.png',
-      iconUrl: '/maps/marker.png',
-      shadowUrl: '/maps/marker-shadow.png',
+  const MapEventsHandler = () => {
+    useMapEvents({
+      click(e) {
+        onMapClick(e.latlng);
+      },
     });
-  }, []);
-
-  const mapCenter = userLocation || [-6.9217, 106.9095];
+    return null;
+  };
 
   return (
     <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} className="h-full w-full">
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
 
-      {userLocation && (
-        <Marker position={userLocation} icon={userMarkerIcon}>
-          <Popup>Your Location</Popup>
+      {departurePoint && (
+        <Marker
+          position={departurePoint}
+          icon={userMarkerIcon}
+          draggable={true}
+          eventHandlers={{ dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'departure') }}
+        >
+          <Popup>Lokasi Keberangkatan</Popup>
         </Marker>
       )}
 
-      {destination && (
-        <Marker position={destination} icon={destinationMarkerIcon}>
-          <Popup>Destination</Popup>
+      {destinationPoint && (
+        <Marker
+          position={destinationPoint}
+          icon={destinationMarkerIcon}
+          draggable={true}
+          eventHandlers={{ dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination') }}
+        >
+          <Popup>Tujuan</Popup>
         </Marker>
       )}
 
@@ -111,20 +127,38 @@ export default function MapComponent({ userLocation, destination, onMapClick, ro
           positions={route.coordinates}
           pathOptions={{
             color: route.isPrimary ? '#FFBF00' : '#6B7280',
-            weight: route.isPrimary ? 6 : 4,
-            opacity: route.isPrimary ? 0.9 : 0.7,
+            weight: route.isPrimary ? 7 : 5,
+            opacity: route.isPrimary ? 0.9 : 0.75,
+            className: route.isPrimary ? '' : 'cursor-pointer'
+          }}
+          eventHandlers={{
+            click: () => {
+              if (!route.isPrimary) {
+                onRouteSelect(route.id);
+              }
+            }
           }}
         >
           <Tooltip sticky>
-            {route.isPrimary ? 'Optimal Route' : 'Alternative Route'} <br/>
-            Distance: {route.distance.toFixed(2)} km <br/>
-            Time: {route.duration.toFixed(0)} mins
-            {route.hasToll && <div style={{color: 'orange'}}> (Includes Toll)</div>}
+            <b>{route.isPrimary ? 'Rute Pilihan' : 'Alternatif'}</b> <br/>
+            Jarak: {route.distance.toFixed(2)} km <br/>
+            Waktu: {route.duration.toFixed(0)} menit <br/>
+            {transportMode === 'car' && (
+                <span style={{color: route.hasToll ? 'orange' : 'lightgreen'}}>
+                    {route.hasToll ? '(Via Tol)' : '(Bebas Tol)'}
+                </span>
+            )}
+            {!route.isPrimary && (
+                <div style={{marginTop: '5px', fontStyle: 'italic', color: '#a5b4fc'}}>
+                    Klik garis untuk pilih rute ini
+                </div>
+            )}
           </Tooltip>
         </Polyline>
       ))}
-      <AutoZoomPan userLocation={userLocation} destination={destination} routes={routes} />
-      <MapEvents onMapClick={onMapClick} />
+
+      <MapController departurePoint={departurePoint} destinationPoint={destinationPoint} routes={routes} />
+      <MapEventsHandler />
     </MapContainer>
   );
 }
