@@ -5,13 +5,13 @@ import { fetchOptimalRoutes } from '@/libs/routing';
 import { RouteInfo, TransportMode, ORSRoute } from '@/libs/types';
 import polyline from '@mapbox/polyline';
 
-const AVG_SPEED_NON_TOLL_KMH = 30;
-const AVG_SPEED_TOLL_KMH = 70;
+const AVG_SPEED_NON_TOLL_KMH = 35;
+const AVG_SPEED_TOLL_KMH = 75;
 
 const processRawRouteToInfo = (
   rawRoute: ORSRoute,
-  hasToll: boolean // Flag eksplisit untuk menentukan jenis kalkulasi
-): Omit<RouteInfo, 'id' | 'isPrimary'> => { // Omit karena properti ini ditentukan nanti
+  hasToll: boolean
+): Omit<RouteInfo, 'id' | 'isPrimary'> => {
   const { summary, geometry } = rawRoute;
   const distanceKm = summary.distance / 1000;
 
@@ -89,23 +89,25 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     },
 
     fetchRoutes: async () => {
-        const { departureAddress, destinationAddress, transportMode, includeTolls } = get();
+        const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
         if (!departureAddress || !destinationAddress) { set({ error: "Lokasi keberangkatan dan tujuan harus diisi." }); return; }
 
         set({ isRouteLoading: true, error: null, routes: [] });
 
         try {
-            const startInfo = await resolveLocationToInfo(departureAddress);
-            const endInfo = await resolveLocationToInfo(destinationAddress);
+            const startInfo = await resolveLocationToInfo(departureAddress, userLocation);
+            const endInfo = await resolveLocationToInfo(destinationAddress, userLocation);
 
             if (!startInfo || !endInfo) { throw new Error("Satu atau kedua lokasi tidak dapat ditemukan."); }
 
             set({ departurePoint: startInfo.coords, departureAddress: startInfo.name, destinationPoint: endInfo.coords, destinationAddress: endInfo.name });
 
             const finalRoutes: RouteInfo[] = [];
+
             if (transportMode === 'car' && includeTolls) {
                 const routesWithTollRaw = await fetchOptimalRoutes(startInfo, endInfo, 'car', false);
                 const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, 'car', true);
+
                 const tollCandidateRaw = routesWithTollRaw?.[0];
                 const nonTollCandidateRaw = routesWithoutTollRaw?.[0];
 

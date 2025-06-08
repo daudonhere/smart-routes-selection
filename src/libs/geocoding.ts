@@ -18,10 +18,19 @@ export const fetchAddressName = async (coords: [number, number]): Promise<string
   }
 };
 
-export const resolveLocationToInfo = async (locationInput: string): Promise<LocationInfo | null> => {
+export const resolveLocationToInfo = async (
+  locationInput: string,
+  focusPoint?: [number, number] | null
+): Promise<LocationInfo | null> => {
   if (!OPENROUTESERVICE_API_KEY) return null;
+
   try {
-    const response = await fetch(`${OPENROUTESERVICE_BASE_URL}/geocode/search?api_key=${OPENROUTESERVICE_API_KEY}&text=${encodeURIComponent(locationInput)}&boundary.country=ID&size=1`);
+    let apiUrl = `${OPENROUTESERVICE_BASE_URL}/geocode/search?api_key=${OPENROUTESERVICE_API_KEY}&text=${encodeURIComponent(locationInput)}&size=1`;
+    if (focusPoint) {
+      apiUrl += `&focus.point.lon=${focusPoint[1]}&focus.point.lat=${focusPoint[0]}`;
+    }
+
+    const response = await fetch(apiUrl);
     if (!response.ok) throw new Error('Geocoding search failed.');
 
     const data: ORSGeocodeResponse = await response.json();
