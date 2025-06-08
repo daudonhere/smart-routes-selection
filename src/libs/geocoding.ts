@@ -1,14 +1,13 @@
-// libs/geocoding.ts
 import { ORSGeocodeResponse, LocationInfo } from './types';
 
 const OPENROUTESERVICE_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY;
+const OPENROUTESERVICE_BASE_URL = process.env.NEXT_PUBLIC_ORS_BASE_URL;
 
 export const fetchAddressName = async (coords: [number, number]): Promise<string> => {
   const fallbackAddress = `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
   if (!OPENROUTESERVICE_API_KEY) return fallbackAddress;
-
   try {
-    const response = await fetch(`https://api.openrouteservice.org/geocode/reverse?api_key=${OPENROUTESERVICE_API_KEY}&point.lon=${coords[1]}&point.lat=${coords[0]}&size=1`);
+    const response = await fetch(`${OPENROUTESERVICE_BASE_URL}/geocode/reverse?api_key=${OPENROUTESERVICE_API_KEY}&point.lon=${coords[1]}&point.lat=${coords[0]}&size=1`);
     if (!response.ok) return fallbackAddress;
     
     const data: ORSGeocodeResponse = await response.json();
@@ -21,9 +20,8 @@ export const fetchAddressName = async (coords: [number, number]): Promise<string
 
 export const resolveLocationToInfo = async (locationInput: string): Promise<LocationInfo | null> => {
   if (!OPENROUTESERVICE_API_KEY) return null;
-
   try {
-    const response = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${OPENROUTESERVICE_API_KEY}&text=${encodeURIComponent(locationInput)}&boundary.country=ID&size=1`);
+    const response = await fetch(`${OPENROUTESERVICE_BASE_URL}/geocode/search?api_key=${OPENROUTESERVICE_API_KEY}&text=${encodeURIComponent(locationInput)}&boundary.country=ID&size=1`);
     if (!response.ok) throw new Error('Geocoding search failed.');
 
     const data: ORSGeocodeResponse = await response.json();

@@ -1,58 +1,67 @@
-// libs/types.ts
+export type TransportMode = 'motorbike' | 'car';
 
-// Tipe untuk Respons Geocoding dari OpenRouteService
+export interface ORSStep {
+  toll?: boolean | string | Record<string, unknown>;
+}
+
+export interface ORSSegment {
+  steps: ORSStep[];
+}
+
+interface ORSWaytypeSummary {
+  value: number;
+  distance: number;
+  amount: number;
+}
+
+interface ORSExtras {
+  waytypes?: {
+    summary: ORSWaytypeSummary[];
+  };
+}
+
+export interface ORSSummary {
+  distance: number;
+  duration: number;
+}
+
+export interface ORSRoute {
+  summary: ORSSummary;
+  geometry: string;
+  segments: ORSSegment[];
+  extras?: ORSExtras;
+}
+
+export interface ORSDirectionsResponse {
+  routes: ORSRoute[];
+  error?: {
+    message: string;
+  };
+}
+
 export interface ORSGeocodeFeature {
   geometry: {
-    coordinates: [number, number]; // [longitude, latitude]
+    coordinates: [number, number];
   };
   properties: {
     label: string;
   };
 }
-
 export interface ORSGeocodeResponse {
   features: ORSGeocodeFeature[];
 }
 
-// Tipe untuk Respons Rute/Arah dari OpenRouteService
-export interface ORSStep {
-  toll: boolean;
-  name: string;
-  // Properti lain yang mungkin Anda butuhkan
-}
-
-export interface ORSSegment {
-  steps: ORSStep[];
-  // Properti lain yang mungkin Anda butuhkan
-}
-
-export interface ORSSummary {
-  distance: number; // dalam meter
-  duration: number; // dalam detik
-}
-
-export interface ORSDirectionsFeature {
-  geometry: {
-    coordinates: [number, number][]; // Array dari [longitude, latitude]
-  };
-  properties: {
-    summary: ORSSummary;
-    segments: ORSSegment[];
-  };
-}
-
-export interface ORSError {
-  message: string;
-  details?: Record<string, unknown> | string;
-}
-
-export interface ORSDirectionsResponse {
-  features: ORSDirectionsFeature[];
-  error?: ORSError;
-}
-
-// Tipe internal aplikasi
 export interface LocationInfo {
-  coords: [number, number]; // [latitude, longitude]
+  coords: [number, number];
   name: string;
+}
+
+export interface RouteInfo {
+  id: string;
+  coordinates: [number, number][];
+  distance: number;
+  duration: number;
+  isPrimary: boolean;
+  hasToll: boolean;
+  averageSpeed: number;
 }

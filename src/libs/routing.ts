@@ -1,7 +1,12 @@
-import { RouteInfo, TransportMode } from '@/stores/routesStore';
-import { LocationInfo, ORSDirectionsResponse, ORSDirectionsFeature } from './types';
+import { TransportMode } from './types';
+import { LocationInfo, ORSDirectionsResponse, ORSRoute, RouteInfo } from './types';
+import polyline from '@mapbox/polyline';
+
 
 const OPENROUTESERVICE_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY;
+const OPENROUTESERVICE_BASE_URL = process.env.NEXT_PUBLIC_ORS_BASE_URL;
+const AVG_SPEED_NON_TOLL_KMH = 40; 
+const AVG_SPEED_TOLL_KMH = 80;     
 
 interface ORSApiOptions {
   avoid_features?: ('tollways' | 'ferries')[];
@@ -13,76 +18,80 @@ interface ORSAlternativeRoutesOptions {
   weight_factor: number;
 }
 
-const processFeatures = (features: ORSDirectionsFeature[], transportMode: TransportMode): RouteInfo[] => {
-    return features.map((feature, index) => {
-        const { summary, segments } = feature.properties;
-        const distanceKm = summary.distance / 1000;
-        const durationMinutes = summary.duration / 60;
+const processRoutes = (routes: ORSRoute[], assumesToll: boolean): RouteInfo[] => {
+  return routes.map((route, index) => {
+    const { summary, geometry } = route;
+    const distanceKm = summary.distance / 1000;
+    const averageSpeed = assumesToll ? AVG_SPEED_TOLL_KMH : AVG_SPEED_NON_TOLL_KMH;
+    const durationHours = distanceKm / averageSpeed;
+    const durationMinutes = durationHours * 60;
+    const decodedCoordinates = polyline.decode(geometry) as [number, number][];
 
-        let hasToll = false;
-        if (transportMode === 'car') {
-            // PERBAIKAN 2: Tambahkan optional chaining (?.) agar lebih aman jika 'segments' atau 'steps' tidak ada.
-            hasToll = segments?.some(seg => seg.steps?.some(step => step.toll)) ?? false;
-        }
-
-        return {
-            id: `route-${Date.now()}-${index}`,
-            coordinates: feature.geometry.coordinates.map((c): [number, number] => [c[1], c[0]]),
-            distance: distanceKm,
-            duration: durationMinutes,
-            isPrimary: index === 0,
-            hasToll: hasToll,
-        };
-    });
+    return {
+      id: `route-${Date.now()}-${index}`,
+      coordinates: decodedCoordinates,
+      distance: distanceKm,
+      duration: durationMinutes,
+      isPrimary: index === 0,
+      hasToll: assumesToll,
+      averageSpeed: averageSpeed,
+    };
+  });
 };
 
+export const fetchOptimalRoutes = async (
+  start: LocationInfo,
+  end: LocationInfo,
+  transportMode: TransportMode,
+  avoidTollways: boolean 
+): Promise<RouteInfo[]> => {
+  if (!OPENROUTESERVICE_API_KEY) throw new Error("API Key for routing service is not configured.");
 
-export const fetchOptimalRoutes = async (start: LocationInfo, end: LocationInfo, transportMode: TransportMode): Promise<RouteInfo[]> => {
-    if (!OPENROUTESERVICE_API_KEY) throw new Error("API Key for routing service is not configured.");
+  const profile = transportMode === 'motorbike' ? 'cycling-regular' : 'driving-car';
+  
+  const baseBody = {
+    coordinates: [
+      [start.coords[1], start.coords[0]],
+      [end.coords[1], end.coords[0]],
+    ],
+    instructions: false,
+  };
 
-    const profile = 'driving-car';
+  const alternativeOptions: ORSAlternativeRoutesOptions = {
+    target_count: 2,
+    weight_factor: 1.5,
+    share_factor: 0.6,
+  };
 
-    const baseBody = {
-        coordinates: [
-            [start.coords[1], start.coords[0]],
-            [end.coords[1], end.coords[0]],
-        ],
-        // PERBAIKAN 1: Ubah 'false' menjadi 'true' untuk mendapatkan detail rute (termasuk info tol).
-        instructions: true,
-    };
+  const options: ORSApiOptions = {};
 
-    const apiCall = async (options?: ORSApiOptions, alternative_routes?: ORSAlternativeRoutesOptions): Promise<ORSDirectionsResponse> => {
-        const body = { ...baseBody, ...(options && { options }), ...(alternative_routes && { alternative_routes }) };
+  if (transportMode === 'car' && avoidTollways) {
+    options.avoid_features = ['tollways', 'ferries'];
+  }
 
-        const res = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
-            method: 'POST',
-            headers: { 'Authorization': OPENROUTESERVICE_API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+  const res = await fetch(`${OPENROUTESERVICE_BASE_URL}/v2/directions/${profile}`, {
+    method: 'POST',
+    headers: {
+      Authorization: OPENROUTESERVICE_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ...baseBody,
+      options,
+      alternative_routes: alternativeOptions,
+    }),
+  });
 
-        const data: ORSDirectionsResponse = await res.json();
-        if (!res.ok) {
-            throw new Error(data.error?.message || 'Failed to fetch routes from the service.');
-        }
-        return data;
-    };
-    
-    const alternativeOptions = {
-        target_count: 2,
-        weight_factor: 2.0,
-        share_factor: 0.5
-    };
+  const data: ORSDirectionsResponse = await res.json();
 
-    let modeSpecificOptions: ORSApiOptions | undefined;
-    if (transportMode === 'motorbike') {
-        modeSpecificOptions = { avoid_features: ["tollways", "ferries"] };
+  if (!res.ok || !data.routes?.length) {
+    const errorMessage = data.error?.message || 'Gagal mengambil rute dari OpenRouteService.';
+    if (errorMessage.includes("point is not found")) {
+        throw new Error("Satu atau kedua lokasi tidak dapat dijangkau atau ditemukan di peta.");
     }
+    throw new Error(errorMessage);
+  }
 
-    const response = await apiCall(modeSpecificOptions, alternativeOptions);
-
-    if (!response.features || response.features.length === 0) {
-        throw new Error(`Tidak ada rute yang ditemukan untuk mode ${transportMode}.`);
-    }
-    
-    return processFeatures(response.features, transportMode);
+  const assumesToll = transportMode === 'car' && !avoidTollways;
+  return processRoutes(data.routes, assumesToll);
 };
