@@ -1,24 +1,32 @@
 import { create } from 'zustand';
 import L from 'leaflet';
+import { fetchAddressName, resolveLocationToInfo } from '@/libs/geocoding';
+import { fetchOptimalRoutes } from '@/libs/routing';
+import { RouteInfo, TransportMode, ORSRoute } from '@/libs/types';
+import polyline from '@mapbox/polyline';
 
-const OPENROUTESERVICE_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY;
-const SUKABUMI_COORDS: [number, number] = [-6.9217, 106.9095];
+const AVG_SPEED_NON_TOLL_KMH = 35;
+const AVG_SPEED_TOLL_KMH = 75;
 
-export type TransportMode = 'motorbike' | 'car';
+const processRawRouteToInfo = (
+  rawRoute: ORSRoute,
+  hasToll: boolean
+): Omit<RouteInfo, 'id' | 'isPrimary'> => {
+  const { summary, geometry } = rawRoute;
+  const distanceKm = summary.distance / 1000;
 
-export interface RouteInfo {
-  id: string;
-  coordinates: [number, number][];
-  distance: number;
-  duration: number;
-  isPrimary: boolean;
-  hasToll: boolean;
-}
+  const averageSpeed = hasToll ? AVG_SPEED_TOLL_KMH : AVG_SPEED_NON_TOLL_KMH;
+  const durationMinutes = (distanceKm / averageSpeed) * 60;
+  const decodedCoordinates = polyline.decode(geometry) as [number, number][];
 
-interface LocationInfo {
-  coords: [number, number];
-  name: string;
-}
+  return {
+    coordinates: decodedCoordinates,
+    distance: distanceKm,
+    duration: durationMinutes,
+    hasToll,
+    averageSpeed,
+  };
+};
 
 interface RouteState {
     userLocation: [number, number] | null;
@@ -28,187 +36,149 @@ interface RouteState {
     destinationAddress: string;
     transportMode: TransportMode;
     routes: RouteInfo[];
+    includeTolls: boolean;
     isRouteLoading: boolean;
     isMapLoading: boolean;
     error: string | null;
     initializeLocation: () => void;
     setTransportMode: (mode: TransportMode) => void;
+    setIncludeTolls: (include: boolean) => void;
     setDepartureFromInput: (address: string) => void;
     setDestinationFromInput: (address: string) => void;
-    setDestinationFromMapClick: (latlng: L.LatLng) => Promise<void>;
-    clearDestination: () => void;
-    clearRoutes: () => void;
-    fetchRoutes: (departure: string, destination: string) => Promise<void>;
+    updateLocationFromMap: (latlng: L.LatLng, type: 'departure' | 'destination') => Promise<void>;
+    fetchRoutes: () => Promise<void>;
+    setActiveRoute: (routeId: string) => void;
+    clearError: () => void;
 }
 
-const fetchAddressName = async (coords: [number, number]): Promise<string> => {
-    if (!OPENROUTESERVICE_API_KEY.startsWith('5b3ce359')) {
-        return `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
-      }
-      try {
-        const response = await fetch(`https://api.openrouteservice.org/geocode/reverse?api_key=${OPENROUTESERVICE_API_KEY}&point.lon=${coords[1]}&point.lat=${coords[0]}&size=1`);
-        if (!response.ok) return `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
-        const data = await response.json();
-        return data.features?.[0]?.properties?.label || `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
-      } catch (error) {
-        console.error("Reverse geocoding error:", error);
-        return `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
-      }
-};
-
-const resolveLocationToInfo = async (locationInput: string | [number, number]): Promise<LocationInfo | null> => {
-    if (Array.isArray(locationInput)) {
-        const name = await fetchAddressName(locationInput);
-        return { coords: locationInput, name };
-    }
-    try {
-        const response = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${OPENROUTESERVICE_API_KEY}&text=${encodeURIComponent(locationInput)}&boundary.country=ID&size=1`);
-        if (!response.ok) throw new Error('Geocoding search failed.');
-        const data = await response.json();
-        if (data.features?.length > 0) {
-            const feature = data.features[0];
-            const [lon, lat] = feature.geometry.coordinates;
-            return { coords: [lat, lon], name: feature.properties.label };
-        }
-        return null;
-    } catch (error) {
-        console.error("Geocoding error:", error);
-        return null;
-    }
-};
-
-
 export const useRouteStore = create<RouteState>((set, get) => ({
-  userLocation: null,
-  departurePoint: null,
-  destinationPoint: null,
-  departureAddress: '',
-  destinationAddress: '',
-  transportMode: 'motorbike',
-  routes: [],
-  isRouteLoading: false,
-  isMapLoading: true,
-  error: null,
-  setTransportMode: (mode) => set({ transportMode: mode, routes: [] }),
-  clearDestination: () => set({ destinationPoint: null, destinationAddress: '', routes: [] }),
-  clearRoutes: () => set({ routes: [] }),
-  setDepartureFromInput: (address) => set({ departureAddress: address, routes: [] }),
-  setDestinationFromInput: (address) => set({ destinationAddress: address, routes: [] }),
-  initializeLocation: () => {
-    set({ isMapLoading: true });
-    const init = async (coords: [number, number], message: string | null = null) => {
-        const name = await fetchAddressName(coords);
-        set({ 
-            userLocation: coords, 
-            departurePoint: coords, 
-            departureAddress: name, 
-            isMapLoading: false, 
-            error: message 
-        });
-    };
-    if (!navigator.geolocation) {
-        init(SUKABUMI_COORDS, 'Geolocation not supported. Using default location.');
-        return;
-    }
-    navigator.geolocation.getCurrentPosition(
-        (position) => init([position.coords.latitude, position.coords.longitude]),
-        (err) => init(SUKABUMI_COORDS, `Geolocation Error: ${err.message}. Using default location.`)
-    );
-  },
-  setDestinationFromMapClick: async (latlng) => {
-    const coords: [number, number] = [latlng.lat, latlng.lng];
-    set({ destinationAddress: "Fetching address...", destinationPoint: coords, routes: [] });
-    const name = await fetchAddressName(coords);
-    set({ destinationAddress: name });
-  },
-  fetchRoutes: async (departure, destination) => {
-    if (!departure || !destination) {
-      set({ error: "Departure and destination are required." });
-      return;
-    }
-    set({ isRouteLoading: true, error: null, routes: [] });
-    try {
-        const startInfo = await resolveLocationToInfo(departure);
-        const endInfo = await resolveLocationToInfo(destination);
-        if (!startInfo || !endInfo) {
-            throw new Error("Could not find one or both locations.");
-        }
-        set({
-            departurePoint: startInfo.coords,
-            departureAddress: startInfo.name,
-            destinationPoint: endInfo.coords,
-            destinationAddress: endInfo.name
-        });
-
-        const { transportMode } = get();
-        const profile = transportMode === 'car' ? 'driving-car' : 'driving-car';
-        
-        const requestBody: any = {
-            coordinates: [
-                [startInfo.coords[1], startInfo.coords[0]],
-                [endInfo.coords[1], endInfo.coords[0]],
-            ],
-            alternative_routes: {
-                target_count: 3,
-                share_factor: 0.6,
-                weight_factor: 1.4,
-            },
-            instructions: true,
+    userLocation: null,
+    departurePoint: null,
+    destinationPoint: null,
+    departureAddress: '',
+    destinationAddress: '',
+    transportMode: 'motorbike',
+    routes: [],
+    includeTolls: true,
+    isRouteLoading: false,
+    isMapLoading: true,
+    error: null,
+    clearError: () => set({ error: null }),
+    setTransportMode: (mode) => { set({ transportMode: mode, routes: [] }); get().clearError(); },
+    setIncludeTolls: (include) => { set({ includeTolls: include, routes: [] }); get().clearError(); },
+    setDepartureFromInput: (address) => set({ departureAddress: address, routes: [] }),
+    setDestinationFromInput: (address) => set({ destinationAddress: address, routes: [] }),
+    initializeLocation: () => {
+        set({ isMapLoading: true });
+        const init = async (coords: [number, number]) => {
+            const name = await fetchAddressName(coords);
+            set({ userLocation: coords, departurePoint: coords, departureAddress: name, isMapLoading: false, error: null });
         };
-        if (transportMode === 'motorbike') {
-            requestBody.options = {
-                avoid_features: ["tollways"]
-            };
-        }
-        const res = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
-            method: 'POST',
-            headers: {
-                'Authorization': OPENROUTESERVICE_API_KEY,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-        });
+        const handleGeoError = () => set({ userLocation: null, departurePoint: null, departureAddress: '', isMapLoading: false, error: "GPS tidak aktif atau izin ditolak. Silakan pilih lokasi keberangkatan secara manual di peta atau kolom input." });
+        if (!navigator.geolocation) { handleGeoError(); return; }
+        navigator.geolocation.getCurrentPosition((position) => init([position.coords.latitude, position.coords.longitude]), handleGeoError, { timeout: 10000, enableHighAccuracy: true });
+    },
+    updateLocationFromMap: async (latlng, type) => {
+        const coords: [number, number] = [latlng.lat, latlng.lng];
+        const stateUpdate = type === 'departure' ? { departurePoint: coords, departureAddress: 'Memperbarui alamat...' } : { destinationPoint: coords, destinationAddress: 'Memperbarui alamat...' };
+        set({ ...stateUpdate, routes: [] });
+        get().clearError();
+        const name = await fetchAddressName(coords);
+        const finalUpdate = type === 'departure' ? { departureAddress: name } : { destinationAddress: name };
+        set(finalUpdate);
+    },
 
-        if (!res.ok) {
-            const errData = await res.json();
-            const errorMessage = errData.error?.message || 'Failed to fetch routes.';
-            if(errData.error?.details) {
-                console.error("Error ", errData.error.details);
+    fetchRoutes: async () => {
+        const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
+        if (!departureAddress || !destinationAddress) { set({ error: "Lokasi keberangkatan dan tujuan harus diisi." }); return; }
+
+        set({ isRouteLoading: true, error: null, routes: [] });
+
+        try {
+            const startInfo = await resolveLocationToInfo(departureAddress, userLocation);
+            const endInfo = await resolveLocationToInfo(destinationAddress, userLocation);
+
+            if (!startInfo || !endInfo) { throw new Error("Satu atau kedua lokasi tidak dapat ditemukan."); }
+
+            set({ departurePoint: startInfo.coords, departureAddress: startInfo.name, destinationPoint: endInfo.coords, destinationAddress: endInfo.name });
+
+            const finalRoutes: RouteInfo[] = [];
+
+            if (transportMode === 'car' && includeTolls) {
+                const routesWithTollRaw = await fetchOptimalRoutes(startInfo, endInfo, 'car', false);
+                const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, 'car', true);
+
+                const tollCandidateRaw = routesWithTollRaw?.[0];
+                const nonTollCandidateRaw = routesWithoutTollRaw?.[0];
+
+                if (!tollCandidateRaw && !nonTollCandidateRaw) {
+                    throw new Error("Tidak dapat menemukan rute dari OpenRouteService.");
+                }
+
+                let tollOption: RouteInfo | null = null;
+                let nonTollOption: RouteInfo | null = null;
+
+                if (tollCandidateRaw) {
+                    tollOption = {
+                        id: `route-toll-${Date.now()}`,
+                        ...processRawRouteToInfo(tollCandidateRaw, true),
+                        isPrimary: false,
+                    };
+                }
+
+                if (nonTollCandidateRaw) {
+                    nonTollOption = {
+                        id: `route-non-toll-${Date.now()}`,
+                        ...processRawRouteToInfo(nonTollCandidateRaw, false),
+                        isPrimary: false,
+                    };
+                }
+
+                if (tollOption && nonTollOption) {
+                    if (tollOption.duration <= nonTollOption.duration) {
+                        tollOption.isPrimary = true;
+                        finalRoutes.push(tollOption, nonTollOption);
+                    } else {
+                        nonTollOption.isPrimary = true;
+                        finalRoutes.push(nonTollOption, tollOption);
+                    }
+                } else if (tollOption) {
+                    tollOption.isPrimary = true;
+                    finalRoutes.push(tollOption);
+                } else if (nonTollOption) {
+                    nonTollOption.isPrimary = true;
+                    finalRoutes.push(nonTollOption);
+                }
+
+            } else {
+                const avoidToll = transportMode === 'motorbike' || (transportMode === 'car' && !includeTolls);
+                const fetchedRoutesRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, avoidToll);
+
+                fetchedRoutesRaw.forEach((rawRoute, index) => {
+                    if (index < 2) {
+                        const routeData = processRawRouteToInfo(rawRoute, false);
+                        finalRoutes.push({
+                            ...routeData,
+                            id: `route-${index}-${Date.now()}`,
+                            isPrimary: index === 0,
+                        });
+                    }
+                });
             }
-            throw new Error(errorMessage);
+
+            if (finalRoutes.length === 0) { throw new Error("Tidak ada rute yang dapat ditemukan antara dua lokasi ini."); }
+
+            set({ routes: finalRoutes, isRouteLoading: false });
+
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tak terduga.";
+            set({ error: errorMessage, isRouteLoading: false, routes: [] });
         }
-
-        const data = await res.json();
-        if (!data.features || data.features.length === 0) {
-            throw new Error("No routes found.");
-        }
-        
-        const newRoutes: RouteInfo[] = data.features.map((feature: any, index: number) => {
-            const summary = feature.properties.summary;
-            const distanceKm = summary.distance / 1000;
-            let hasToll = false;
-
-            if (transportMode === 'car') {
-                const segments = feature.properties.segments;
-                hasToll = segments?.some((seg: any) => seg.steps?.some((step: any) => step.toll)) ?? false;
-            }
-
-            const durationMinutes = summary.duration / 60;
-
-            return {
-                id: `route-${index}`,
-                coordinates: feature.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]),
-                distance: distanceKm,
-                duration: durationMinutes,
-                isPrimary: index === 0,
-                hasToll: hasToll,
-            };
-        });
-
-        set({ routes: newRoutes, isRouteLoading: false });
-
-    } catch (err: any) {
-        set({ error: err.message, isRouteLoading: false });
-    }
-  },
+    },
+    
+    setActiveRoute: (routeId: string) => {
+        const currentRoutes = get().routes;
+        const newRoutes = currentRoutes.map(route => ({...route, isPrimary: route.id === routeId, }));
+        set({ routes: newRoutes });
+    },
 }));
