@@ -15,13 +15,15 @@ const startMarkerIcon = new L.Icon({
   iconAnchor: [17, 61],
   popupAnchor: [1, -34],
 });
+
 const endMarkerIcon = new L.Icon({
   iconUrl: '/maps/marker.png',
   iconRetinaUrl: '/maps/marker.png',
   iconSize: [35, 61],
   iconAnchor: [17, 61],
   popupAnchor: [1, -34],
-  });
+});
+
 interface MapProps {
   userLocation: [number, number] | null;
   departurePoint: [number, number] | null;
@@ -32,16 +34,12 @@ interface MapProps {
   routes: RouteInfo[];
 }
 
-function MapController({
-  departurePoint,
-  destinationPoint,
-  routes,
-}: {
-  departurePoint: [number, number] | null;
-  destinationPoint: [number, number] | null;
-  routes: RouteInfo[];
-}) {
-  const map = useMap() as L.Map & { _compass?: L.Control };
+interface MapWithCompass extends L.Map {
+  _compass?: L.Control.Compass;
+}
+
+function MapController({ routes }: { routes: RouteInfo[] }) {
+  const map = useMap() as MapWithCompass;
   const prevBoundsRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -51,33 +49,24 @@ function MapController({
             showDigit: false,
             position: 'topright',
           });
-        (map as L.Map & { _compass?: L.Control })._compass = compassControl;
+        map._compass = compassControl;
         map.addControl(compassControl);
     }
   }, [map]);
 
   useEffect(() => {
-    const points: L.LatLngExpression[] = [];
     if (routes && routes.length > 0) {
       const allCoords = routes.flatMap((r) => r.coordinates);
       if (allCoords.length > 0) {
-        points.push(...allCoords as L.LatLngExpression[]);
+        const bounds = L.latLngBounds(allCoords as L.LatLngExpression[]);
+        const boundsKey = bounds.toBBoxString();
+        if (prevBoundsRef.current !== boundsKey) {
+            map.fitBounds(bounds, { padding: [60, 60] });
+            prevBoundsRef.current = boundsKey;
+        }
       }
-    } else {
-      if (departurePoint) points.push(departurePoint);
-      if (destinationPoint) points.push(destinationPoint);
     }
-    if (points.length > 0) {
-      const bounds = L.latLngBounds(points);
-      const boundsKey = bounds.toBBoxString();
-      if (prevBoundsRef.current !== boundsKey) {
-          map.fitBounds(bounds, { padding: [60, 60] });
-          prevBoundsRef.current = boundsKey;
-      }
-    } else if (map.getZoom() > 6) {
-        map.setView([-2.5489, 118.0149], 5);
-    }
-  }, [departurePoint, destinationPoint, routes, map]);
+  }, [routes, map]);
   return null;
 }
 
@@ -110,13 +99,18 @@ export default function MapComponent({
 
   return (
     <MapContainer center={mapCenter} zoom={initialZoom} scrollWheelZoom={true} className="h-full w-full">
-      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"/>
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
+      />
+
       {departurePoint && (
         <Marker
           position={departurePoint}
           icon={startMarkerIcon}
           draggable={true}
-          eventHandlers={{dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'departure'),}}
+          eventHandlers={{
+            dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'departure'),
+          }}
         >
           <Popup>Lokasi Keberangkatan</Popup>
         </Marker>
@@ -127,7 +121,9 @@ export default function MapComponent({
           position={destinationPoint}
           icon={endMarkerIcon}
           draggable={true}
-          eventHandlers={{dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination'),}}
+          eventHandlers={{
+            dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination'),
+          }}
         >
           <Popup>Tujuan</Popup>
         </Marker>
@@ -151,7 +147,7 @@ export default function MapComponent({
           }}
         />
       ))}
-      <MapController departurePoint={departurePoint} destinationPoint={destinationPoint} routes={routes}/>
+      <MapController routes={routes} />
       <MapEventsHandler />
     </MapContainer>
   );

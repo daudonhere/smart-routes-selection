@@ -1,12 +1,8 @@
 import { TransportMode } from './types';
-import { LocationInfo, ORSDirectionsResponse, ORSRoute, RouteInfo } from './types';
-import polyline from '@mapbox/polyline';
-
+import { LocationInfo, ORSDirectionsResponse, ORSRoute } from './types';
 
 const OPENROUTESERVICE_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY;
 const OPENROUTESERVICE_BASE_URL = process.env.NEXT_PUBLIC_ORS_BASE_URL;
-const AVG_SPEED_NON_TOLL_KMH = 40; 
-const AVG_SPEED_TOLL_KMH = 80;     
 
 interface ORSApiOptions {
   avoid_features?: ('tollways' | 'ferries')[];
@@ -18,37 +14,16 @@ interface ORSAlternativeRoutesOptions {
   weight_factor: number;
 }
 
-const processRoutes = (routes: ORSRoute[], assumesToll: boolean): RouteInfo[] => {
-  return routes.map((route, index) => {
-    const { summary, geometry } = route;
-    const distanceKm = summary.distance / 1000;
-    const averageSpeed = assumesToll ? AVG_SPEED_TOLL_KMH : AVG_SPEED_NON_TOLL_KMH;
-    const durationHours = distanceKm / averageSpeed;
-    const durationMinutes = durationHours * 60;
-    const decodedCoordinates = polyline.decode(geometry) as [number, number][];
-
-    return {
-      id: `route-${Date.now()}-${index}`,
-      coordinates: decodedCoordinates,
-      distance: distanceKm,
-      duration: durationMinutes,
-      isPrimary: index === 0,
-      hasToll: assumesToll,
-      averageSpeed: averageSpeed,
-    };
-  });
-};
-
 export const fetchOptimalRoutes = async (
   start: LocationInfo,
   end: LocationInfo,
   transportMode: TransportMode,
-  avoidTollways: boolean 
-): Promise<RouteInfo[]> => {
+  avoidTollways: boolean
+): Promise<ORSRoute[]> => {
   if (!OPENROUTESERVICE_API_KEY) throw new Error("API Key for routing service is not configured.");
 
   const profile = transportMode === 'motorbike' ? 'cycling-regular' : 'driving-car';
-  
+
   const baseBody = {
     coordinates: [
       [start.coords[1], start.coords[0]],
@@ -87,11 +62,9 @@ export const fetchOptimalRoutes = async (
   if (!res.ok || !data.routes?.length) {
     const errorMessage = data.error?.message || 'Gagal mengambil rute dari OpenRouteService.';
     if (errorMessage.includes("point is not found")) {
-        throw new Error("Satu atau kedua lokasi tidak dapat dijangkau atau ditemukan di peta.");
+      throw new Error("Satu atau kedua lokasi tidak dapat dijangkau atau ditemukan di peta.");
     }
     throw new Error(errorMessage);
   }
-
-  const assumesToll = transportMode === 'car' && !avoidTollways;
-  return processRoutes(data.routes, assumesToll);
+  return data.routes;
 };
