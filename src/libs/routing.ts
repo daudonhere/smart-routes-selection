@@ -33,7 +33,7 @@ export const fetchOptimalRoutes = async (
   };
 
   const alternativeOptions: ORSAlternativeRoutesOptions = {
-    target_count: 2,
+    target_count: 3,
     weight_factor: 1.5,
     share_factor: 0.6,
   };
