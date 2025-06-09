@@ -34,8 +34,8 @@ export const fetchOptimalRoutes = async (
 
   const alternativeOptions: ORSAlternativeRoutesOptions = {
     target_count: 3,
-    weight_factor: 1.5,
-    share_factor: 0.6,
+    weight_factor: 1.7,
+    share_factor: 0.4,
   };
 
   const options: ORSApiOptions = {};

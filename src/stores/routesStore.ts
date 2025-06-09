@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import L from 'leaflet';
 import { fetchAddressName, resolveLocationToInfo } from '@/libs/geocoding';
 import { fetchOptimalRoutes } from '@/libs/routing';
-import { RouteInfo, TransportMode, ORSRoute } from '@/libs/types';
+import { RouteInfo, TransportMode, ORSRoute, LocationInfo } from '@/libs/types';
 import polyline from '@mapbox/polyline';
 
 const AVG_SPEED_NON_TOLL_KMH = 35;
@@ -49,6 +49,7 @@ interface RouteState {
     fetchRoutes: () => Promise<void>;
     setActiveRoute: (routeId: string) => void;
     clearError: () => void;
+    setPoint: (type: 'departure' | 'destination', locationInfo: LocationInfo) => void; // REVISI: Tambah action
 }
 
 export const useRouteStore = create<RouteState>((set, get) => ({
@@ -87,7 +88,22 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         const finalUpdate = type === 'departure' ? { departureAddress: name } : { destinationAddress: name };
         set(finalUpdate);
     },
-
+    // REVISI: Tambahkan action baru untuk menangani pemilihan dari autocomplete
+    setPoint: (type, locationInfo) => {
+        if (type === 'departure') {
+            set({
+                departureAddress: locationInfo.name,
+                departurePoint: locationInfo.coords,
+                routes: []
+            });
+        } else {
+            set({
+                destinationAddress: locationInfo.name,
+                destinationPoint: locationInfo.coords,
+                routes: []
+            });
+        }
+    },
     fetchRoutes: async () => {
         const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
         if (!departureAddress || !destinationAddress) { set({ error: "Lokasi keberangkatan dan tujuan harus diisi." }); return; }
@@ -175,7 +191,6 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             set({ error: errorMessage, isRouteLoading: false, routes: [] });
         }
     },
-    
     setActiveRoute: (routeId: string) => {
         const currentRoutes = get().routes;
         const newRoutes = currentRoutes.map(route => ({...route, isPrimary: route.id === routeId, }));

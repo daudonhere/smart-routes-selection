@@ -1,8 +1,10 @@
 "use client";
+
 import React, { useState } from 'react';
 import { useRouteStore } from '@/stores/routesStore';
 import { Car, Bike, CircleDollarSign, Info, Route } from 'lucide-react';
 import { RouteInfo } from '@/libs/types';
+import AutocompleteInput from './AutocompleteInput';
 
 const currencies = [
   { code: 'IDR', name: 'IDR', symbol: 'Rp' },
@@ -27,6 +29,7 @@ export default function CardWrapper() {
   const fetchRoutes = useRouteStore((state) => state.fetchRoutes);
   const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
+  const setPoint = useRouteStore((state) => state.setPoint);
   const [pricePerKm, setPricePerKm] = useState('0');
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0].code);
   const selectedCurrencySymbol = currencies.find(c => c.code === selectedCurrency)?.symbol || 'Rp';
@@ -66,19 +69,17 @@ export default function CardWrapper() {
         </div>
 
         <form onSubmit={handleFormSubmit} className="space-y-3">
-          <input
-            type="text"
+          <AutocompleteInput
             value={departureAddress}
-            onChange={(e) => setDepartureFromInput(e.target.value)}
+            onValueChange={setDepartureFromInput}
+            onSelect={(location) => setPoint('departure', location)}
             placeholder="Lokasi keberangkatan"
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm outline-none focus:border-indigo-400"
           />
-          <input
-            type="text"
+          <AutocompleteInput
             value={destinationAddress}
-            onChange={(e) => setDestinationFromInput(e.target.value)}
+            onValueChange={setDestinationFromInput}
+            onSelect={(location) => setPoint('destination', location)}
             placeholder="Tujuan"
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm outline-none focus:border-indigo-400"
           />
 
           {transportMode === 'car' && (

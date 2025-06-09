@@ -45,3 +45,33 @@ export const resolveLocationToInfo = async (
     return null;
   }
 };
+
+export const fetchAutocompleteSuggestions = async (
+  query: string,
+  focusPoint?: [number, number] | null
+): Promise<LocationInfo[]> => {
+  if (!query || query.length < 3) return [];
+  if (!OPENROUTESERVICE_API_KEY) return [];
+
+  try {
+    let apiUrl = `${OPENROUTESERVICE_BASE_URL}/geocode/autocomplete?api_key=${OPENROUTESERVICE_API_KEY}&text=${encodeURIComponent(query)}`;
+    
+    if (focusPoint) {
+      apiUrl += `&focus.point.lon=${focusPoint[1]}&focus.point.lat=${focusPoint[0]}`;
+    }
+
+    const response = await fetch(apiUrl);
+    if (!response.ok) return [];
+
+    const data: ORSGeocodeResponse = await response.json();
+    
+    return data.features.map(feature => {
+      const [lon, lat] = feature.geometry.coordinates;
+      return { coords: [lat, lon], name: feature.properties.label };
+    });
+
+  } catch (error) {
+    console.error("Autocomplete fetch error:", error);
+    return [];
+  }
+};

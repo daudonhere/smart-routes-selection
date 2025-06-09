@@ -23,9 +23,9 @@ export default function VehicleMarker({ position, center, animatedRadius, iconUr
     }
     
     const icon = L.divIcon({
-        html: `<img src="${iconUrl}" style="opacity: ${opacity}; transition: opacity 3s ease-in-out; width: 30px; height: 30px;" />`,
+        html: `<img src="${iconUrl}" style="opacity: ${opacity}; transition: opacity 3s ease-in-out; width: 30px; height: 35px;" />`,
         className: 'vehicle-icon',
-        iconSize: [30, 30],
+        iconSize: [30, 35],
         iconAnchor: [15, 15],
     });
 
