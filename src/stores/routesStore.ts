@@ -5,26 +5,42 @@ import { fetchOptimalRoutes } from '@/libs/routing';
 import { RouteInfo, TransportMode, ORSRoute, LocationInfo } from '@/libs/types';
 import polyline from '@mapbox/polyline';
 
-const AVG_SPEED_NON_TOLL_KMH = 35;
-const AVG_SPEED_TOLL_KMH = 75;
+const MOTORBIKE_SPEED_ADJUSTMENT = 17;
+const CAR_TOLL_SPEED_ADJUSTMENT = 15;
+const CAR_NON_TOLL_SPEED_ADJUSTMENT = -37;
 
 const processRawRouteToInfo = (
   rawRoute: ORSRoute,
+  transportMode: TransportMode,
   hasToll: boolean
 ): Omit<RouteInfo, 'id' | 'isPrimary'> => {
   const { summary, geometry } = rawRoute;
   const distanceKm = summary.distance / 1000;
-
-  const averageSpeed = hasToll ? AVG_SPEED_TOLL_KMH : AVG_SPEED_NON_TOLL_KMH;
-  const durationMinutes = (distanceKm / averageSpeed) * 60;
   const decodedCoordinates = polyline.decode(geometry) as [number, number][];
+  const orsDurationMinutes = summary.duration / 60;
+
+  const orsAverageSpeed = distanceKm > 0 ? distanceKm / (orsDurationMinutes / 60) : 0;
+
+  let adjustedAverageSpeed = orsAverageSpeed;
+
+  if (transportMode === 'motorbike') {
+    adjustedAverageSpeed += MOTORBIKE_SPEED_ADJUSTMENT;
+  } else if (transportMode === 'car') {
+    adjustedAverageSpeed += hasToll ? CAR_TOLL_SPEED_ADJUSTMENT : CAR_NON_TOLL_SPEED_ADJUSTMENT;
+  }
+
+  if (adjustedAverageSpeed < 5) {
+    adjustedAverageSpeed = 5;
+  }
+
+  const finalDurationMinutes = (distanceKm / adjustedAverageSpeed) * 60;
 
   return {
     coordinates: decodedCoordinates,
     distance: distanceKm,
-    duration: durationMinutes,
+    duration: finalDurationMinutes,
     hasToll,
-    averageSpeed,
+    averageSpeed: adjustedAverageSpeed,
   };
 };
 
@@ -49,7 +65,7 @@ interface RouteState {
     fetchRoutes: () => Promise<void>;
     setActiveRoute: (routeId: string) => void;
     clearError: () => void;
-    setPoint: (type: 'departure' | 'destination', locationInfo: LocationInfo) => void; // REVISI: Tambah action
+    setPoint: (type: 'departure' | 'destination', locationInfo: LocationInfo) => void;
 }
 
 export const useRouteStore = create<RouteState>((set, get) => ({
@@ -88,7 +104,6 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         const finalUpdate = type === 'departure' ? { departureAddress: name } : { destinationAddress: name };
         set(finalUpdate);
     },
-    // REVISI: Tambahkan action baru untuk menangani pemilihan dari autocomplete
     setPoint: (type, locationInfo) => {
         if (type === 'departure') {
             set({
@@ -135,9 +150,13 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 let nonTollOption: RouteInfo | null = null;
 
                 if (tollCandidateRaw) {
+                    const isTrulyTollRoute = nonTollCandidateRaw 
+                        ? (tollCandidateRaw.summary.duration < nonTollCandidateRaw.summary.duration) 
+                        : false;
+
                     tollOption = {
                         id: `route-toll-${Date.now()}`,
-                        ...processRawRouteToInfo(tollCandidateRaw, true),
+                        ...processRawRouteToInfo(tollCandidateRaw, 'car', isTrulyTollRoute),
                         isPrimary: false,
                     };
                 }
@@ -145,11 +164,11 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 if (nonTollCandidateRaw) {
                     nonTollOption = {
                         id: `route-non-toll-${Date.now()}`,
-                        ...processRawRouteToInfo(nonTollCandidateRaw, false),
+                        ...processRawRouteToInfo(nonTollCandidateRaw, 'car', false),
                         isPrimary: false,
                     };
                 }
-
+                
                 if (tollOption && nonTollOption) {
                     if (tollOption.duration <= nonTollOption.duration) {
                         tollOption.isPrimary = true;
@@ -172,7 +191,8 @@ export const useRouteStore = create<RouteState>((set, get) => ({
 
                 fetchedRoutesRaw.forEach((rawRoute, index) => {
                     if (index < 2) {
-                        const routeData = processRawRouteToInfo(rawRoute, false);
+                        const hasToll = false;
+                        const routeData = processRawRouteToInfo(rawRoute, transportMode, hasToll);
                         finalRoutes.push({
                             ...routeData,
                             id: `route-${index}-${Date.now()}`,

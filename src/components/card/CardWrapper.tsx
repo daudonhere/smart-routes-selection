@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouteStore } from '@/stores/routesStore';
-import { Car, Bike, CircleDollarSign, Info, Route } from 'lucide-react';
+import { Car, Bike, CircleDollarSign, Info, Route, AlertTriangle } from 'lucide-react';
 import { RouteInfo } from '@/libs/types';
 import AutocompleteInput from './AutocompleteInput';
 
@@ -133,7 +133,10 @@ export default function CardWrapper() {
         {routes.length > 0 && !isRouteLoading && (
           <div className="mt-4 p-3 bg-gray-900/50 rounded-lg space-y-3">
             <h3 className="text-md font-semibold text-indigo-300 flex items-center gap-2"><Route size={20}/> Hasil Perhitungan Rute</h3>
-            {routes.map((route: RouteInfo) => { const totalCost = calculateCost(route.distance);
+            {routes.map((route: RouteInfo) => { 
+              const totalCost = calculateCost(route.distance);
+              const isSlowSpeed = route.averageSpeed < 30;
+
               return (
                 <div key={route.id} onClick={() => !route.isPrimary && setActiveRoute(route.id)} className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'bg-gray-800 ring-2 ring-indigo-400' : 'border border-dashed border-gray-700 hover:bg-gray-800/50 cursor-pointer'}`}>
                   <p className="font-bold text-white flex items-center gap-2">
@@ -150,6 +153,12 @@ export default function CardWrapper() {
                       ? (route.hasToll ? 'Rute ini melewati jalan tol.' : 'Rute ini adalah alternatif bebas tol.')
                       : 'Rute ini dirancang untuk motor (menghindari tol).'}
                   </p>
+                  {isSlowSpeed && (
+                    <div className="mt-2 p-2 bg-yellow-900/50 border border-yellow-700 rounded-md text-yellow-300 text-xs flex items-center gap-2">
+                      <AlertTriangle size={16} />
+                      <span>Rute mungkin padat meskipun ini rute terbaik.</span>
+                    </div>
+                  )}
                   {totalCost !== null && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <p className="text-sm font-medium text-green-400 flex items-center gap-2">

@@ -22,8 +22,8 @@ export const fetchOptimalRoutes = async (
 ): Promise<ORSRoute[]> => {
   if (!OPENROUTESERVICE_API_KEY) throw new Error("API Key for routing service is not configured.");
 
-  const profile = transportMode === 'motorbike' ? 'cycling-regular' : 'driving-car';
-
+  const profile = transportMode === 'motorbike' ? 'cycling-road' : 'driving-car';
+  
   const baseBody = {
     coordinates: [
       [start.coords[1], start.coords[0]],
@@ -33,9 +33,9 @@ export const fetchOptimalRoutes = async (
   };
 
   const alternativeOptions: ORSAlternativeRoutesOptions = {
-    target_count: 3,
-    weight_factor: 1.7,
-    share_factor: 0.4,
+    target_count: 2,
+    weight_factor: 1.5,
+    share_factor: 0.6,
   };
 
   const options: ORSApiOptions = {};
@@ -62,9 +62,10 @@ export const fetchOptimalRoutes = async (
   if (!res.ok || !data.routes?.length) {
     const errorMessage = data.error?.message || 'Gagal mengambil rute dari OpenRouteService.';
     if (errorMessage.includes("point is not found")) {
-      throw new Error("Satu atau kedua lokasi tidak dapat dijangkau atau ditemukan di peta.");
+        throw new Error("Satu atau kedua lokasi tidak dapat dijangkau atau ditemukan di peta.");
     }
     throw new Error(errorMessage);
   }
+
   return data.routes;
 };
