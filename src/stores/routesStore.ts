@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import L from 'leaflet';
 import { fetchAddressName, resolveLocationToInfo } from '@/libs/geocoding';
 import { fetchOptimalRoutes } from '@/libs/routing';
-import { RouteInfo, TransportMode, ORSRoute, LocationInfo, Driver } from '@/libs/types';
+import { RouteInfo, TransportMode, ORSRoute, LocationInfo, Driver, DriverDirection } from '@/libs/types';
 import polyline from '@mapbox/polyline';
 
 const MOTORBIKE_SPEED_ADJUSTMENT = 17;
@@ -20,7 +20,9 @@ const processRawRouteToInfo = (
   const distanceKm = summary.distance / 1000;
   const decodedCoordinates = polyline.decode(geometry) as [number, number][];
   const orsDurationMinutes = summary.duration / 60;
+
   const orsAverageSpeed = distanceKm > 0 ? distanceKm / (orsDurationMinutes / 60) : 0;
+
   let adjustedAverageSpeed = orsAverageSpeed;
 
   switch (transportMode) {
@@ -50,6 +52,8 @@ const processRawRouteToInfo = (
   };
 };
 
+let animationFrameId: number | null = null;
+
 interface RouteState {
     userLocation: [number, number] | null;
     departurePoint: [number, number] | null;
@@ -66,7 +70,10 @@ interface RouteState {
     nearbyDrivers: Driver[];
     acceptingDriver: Driver | null;
     pickupRoute: RouteInfo | null;
-    clearOffer: () => void;
+    isDriverEnroute: boolean;
+    driverPosition: [number, number] | null;
+    driverDirection: DriverDirection;
+    hasDriverArrived: boolean; // REVISI: State baru untuk menandakan driver telah tiba
     initializeLocation: () => void;
     setTransportMode: (mode: TransportMode) => void;
     setIncludeTolls: (include: boolean) => void;
@@ -76,9 +83,11 @@ interface RouteState {
     fetchRoutes: () => Promise<void>;
     setActiveRoute: (routeId: string) => void;
     clearError: () => void;
+    clearOffer: () => void;
     setPoint: (type: 'departure' | 'destination', locationInfo: LocationInfo) => void;
     startOfferSimulation: () => void;
     cancelOffer: () => void;
+    _startDriverAnimation: () => void;
 }
 
 export const useRouteStore = create<RouteState>((set, get) => ({
@@ -97,33 +106,38 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     nearbyDrivers: [],
     acceptingDriver: null,
     pickupRoute: null,
+    isDriverEnroute: false,
+    driverPosition: null,
+    driverDirection: 'front',
+    hasDriverArrived: false,
     
     clearError: () => set({ error: null }),
 
-    clearOffer: () => set({ isOffering: false, nearbyDrivers: [], acceptingDriver: null, pickupRoute: null }),
+    clearOffer: () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      set({ 
+        isOffering: false, 
+        nearbyDrivers: [], 
+        acceptingDriver: null, 
+        pickupRoute: null,
+        isDriverEnroute: false,
+        driverPosition: null,
+        driverDirection: 'front',
+        hasDriverArrived: false,
+      });
+    },
     
     cancelOffer: () => {
-    get().clearOffer();
+      get().clearOffer();
     },
 
-    setTransportMode: (mode) => { 
-      get().clearOffer(); 
-      set({ transportMode: mode, routes: [] }); 
-      get().clearError(); 
-    },
-    setIncludeTolls: (include) => { 
-      get().clearOffer(); 
-      set({ includeTolls: include, routes: [] }); 
-      get().clearError(); 
-    },
-    setDepartureFromInput: (address) => { 
-      get().clearOffer(); 
-      set({ departureAddress: address, routes: [] }); 
-    },
-    setDestinationFromInput: (address) => { 
-      get().clearOffer(); 
-      set({ destinationAddress: address, routes: [] }); 
-    },
+    setTransportMode: (mode) => { get().clearOffer(); set({ transportMode: mode, routes: [] }); get().clearError(); },
+    setIncludeTolls: (include) => { get().clearOffer(); set({ includeTolls: include, routes: [] }); get().clearError(); },
+    setDepartureFromInput: (address) => { get().clearOffer(); set({ departureAddress: address, routes: [] }); },
+    setDestinationFromInput: (address) => { get().clearOffer(); set({ destinationAddress: address, routes: [] }); },
     
     initializeLocation: () => {
         set({ isMapLoading: true });
@@ -165,7 +179,6 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         get().clearOffer();
         const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
         if (!departureAddress || !destinationAddress) { set({ error: "Lokasi keberangkatan dan tujuan harus diisi." }); return; }
-
         set({ isRouteLoading: true, error: null, routes: [] });
 
         try {
@@ -233,6 +246,65 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         const newRoutes = currentRoutes.map(route => ({...route, isPrimary: route.id === routeId, }));
         set({ routes: newRoutes });
     },
+    _startDriverAnimation: () => {
+      const { pickupRoute } = get();
+      if (!pickupRoute || pickupRoute.coordinates.length < 2) return;
+
+      const durationInMs = pickupRoute.duration * 60 * 1000;
+      const routeCoords = pickupRoute.coordinates;
+      let startTime: number | null = null;
+      let lastPosition = routeCoords[0];
+
+      set({ isDriverEnroute: true, driverPosition: lastPosition });
+
+      const animate = (timestamp: number) => {
+        if (!startTime) {
+          startTime = timestamp;
+        }
+
+        const elapsedTime = timestamp - startTime;
+        let progress = elapsedTime / durationInMs;
+        if (progress > 1) progress = 1;
+
+        const targetIndexFloat = progress * (routeCoords.length - 1);
+        const startIndex = Math.floor(targetIndexFloat);
+        const endIndex = Math.min(startIndex + 1, routeCoords.length - 1);
+        const segmentProgress = targetIndexFloat - startIndex;
+        const startCoords = routeCoords[startIndex];
+        const endCoords = routeCoords[endIndex];
+        const interpolatedLat = startCoords[0] + (endCoords[0] - startCoords[0]) * segmentProgress;
+        const interpolatedLng = startCoords[1] + (endCoords[1] - startCoords[1]) * segmentProgress;
+        const newPosition: [number, number] = [interpolatedLat, interpolatedLng];
+
+        if (newPosition[0] !== lastPosition[0] || newPosition[1] !== lastPosition[1]) {
+          const dy = newPosition[0] - lastPosition[0];
+          const dx = newPosition[1] - lastPosition[1];
+          let newDirection: DriverDirection = get().driverDirection;
+          if (Math.abs(dy) > Math.abs(dx)) {
+            newDirection = dy < 0 ? 'front' : 'back';
+          } else {
+            newDirection = dx > 0 ? 'right' : 'left';
+          }
+          set({ driverDirection: newDirection });
+        }
+        
+        set({ driverPosition: newPosition });
+        lastPosition = newPosition;
+
+        if (progress < 1) {
+          animationFrameId = requestAnimationFrame(animate);
+        } else {
+          set({ 
+            isDriverEnroute: false, 
+            hasDriverArrived: true,
+            driverPosition: get().departurePoint,
+          });
+          animationFrameId = null;
+        }
+      };
+
+      animationFrameId = requestAnimationFrame(animate);
+    },
     startOfferSimulation: () => {
       const { departurePoint, transportMode } = get();
       if (!departurePoint) return;
@@ -241,7 +313,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       set({ isOffering: true });
 
       const generatedDrivers: Driver[] = [];
-      const vehicleCount = 7; 
+      const vehicleCount = 4; 
       for (let i = 0; i < vehicleCount; i++) {
         const randomDistance = (Math.sqrt(Math.random()) * 2000) + 500;
         const randomAngle = Math.random() * 2 * Math.PI;
@@ -274,7 +346,12 @@ export const useRouteStore = create<RouteState>((set, get) => ({
           if (pickupRouteRaw.length > 0) {
             const routeData = processRawRouteToInfo(pickupRouteRaw[0], chosenDriver.type, false);
             const finalPickupRoute: RouteInfo = { ...routeData, id: `pickup-${chosenDriver.id}`, isPrimary: true };
-            set({ acceptingDriver: chosenDriver, pickupRoute: finalPickupRoute });
+            
+            set({ acceptingDriver: chosenDriver, pickupRoute: finalPickupRoute, driverPosition: chosenDriver.position });
+
+            setTimeout(() => {
+              get()._startDriverAnimation();
+            }, 5000);
           }
         } catch (e) {
           if (e instanceof Error) {

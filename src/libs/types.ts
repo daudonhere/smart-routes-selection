@@ -6,6 +6,8 @@ export interface Driver {
   position: [number, number];
 }
 
+export type DriverDirection = 'front' | 'back' | 'left' | 'right';
+
 export interface ORSStep {
   toll?: boolean | string | Record<string, unknown>;
 }

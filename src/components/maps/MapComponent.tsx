@@ -2,9 +2,10 @@
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Route, Timer } from 'lucide-react';
 import L from 'leaflet';
 import { useEffect, useMemo, useRef } from 'react';
-import { RouteInfo, Driver, TransportMode } from '@/libs/types';
+import { RouteInfo, Driver, TransportMode, DriverDirection } from '@/libs/types';
 import MapController from './MapController';
 import MapEventsHandler from './MapEventsHandler';
 import RadarEffect from '../radar/RadarEffect';
@@ -25,11 +26,11 @@ const endMarkerIcon = new L.Icon({
   popupAnchor: [1, -34],
 });
 
-const driverIcon = (type: TransportMode) => new L.Icon({
-  iconUrl: `/${type}/${type}-front.png`,
+const driverIcon = (type: TransportMode, direction: DriverDirection) => new L.Icon({
+  iconUrl: `/${type}/${type}-${direction}.png`,
   iconSize: [40, 45],
   iconAnchor: [20, 22],
-  className: 'animate-pulse'
+  className: 'leaflet-marker-transition'
 });
 
 const DEFAULT_LOCATIONS: [number, number][] = [
@@ -40,7 +41,6 @@ const DEFAULT_LOCATIONS: [number, number][] = [
     [39.9042, 116.4074], 
     [28.6139, 77.2090],
 ];
-
 
 interface MapProps {
   userLocation: [number, number] | null;
@@ -54,6 +54,10 @@ interface MapProps {
   nearbyDrivers: Driver[];
   acceptingDriver: Driver | null;
   pickupRoute: RouteInfo | null;
+  isDriverEnroute: boolean;
+  driverPosition: [number, number] | null;
+  driverDirection: DriverDirection;
+  hasDriverArrived: boolean;
 }
 
 export default function MapComponent({
@@ -68,6 +72,9 @@ export default function MapComponent({
   nearbyDrivers,
   acceptingDriver,
   pickupRoute,
+  driverPosition,
+  driverDirection,
+  hasDriverArrived,
 }: MapProps) {
 
   const defaultLocation = useMemo(() => {
@@ -85,14 +92,17 @@ export default function MapComponent({
   const markerRef = useRef<L.Marker | null>(null);
   
   useEffect(() => {
-    if (acceptingDriver && markerRef.current) {
+    if ((acceptingDriver || hasDriverArrived) && markerRef.current) {
       setTimeout(() => {
         if (markerRef.current) {
           markerRef.current.openPopup();
         }
       }, 0);
     }
-  }, [acceptingDriver]);
+  }, [acceptingDriver, hasDriverArrived]);
+
+  const finalDriverPosition = driverPosition || acceptingDriver?.position;
+  const finalDriverIcon = acceptingDriver ? driverIcon(acceptingDriver.type, driverDirection) : undefined;
 
   return (
     <MapContainer center={mapCenter} zoom={initialZoom} scrollWheelZoom={true} className="h-full w-full">
@@ -128,7 +138,7 @@ export default function MapComponent({
             dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination'),
           }}
         >
-          <Popup>Tujuan</Popup>
+          <Popup>Lokasi Tujuan</Popup>
         </Marker>
       )}
 
@@ -158,12 +168,30 @@ export default function MapComponent({
         />
       )}
       
-      {acceptingDriver && pickupRoute && (
-        <Marker ref={markerRef} position={acceptingDriver.position} icon={driverIcon(acceptingDriver.type)}>
+      {acceptingDriver && finalDriverPosition && finalDriverIcon && (
+        <Marker
+          ref={markerRef}
+          position={finalDriverPosition}
+          icon={finalDriverIcon}
+        >
           <Popup className="driver-popup" offset={[0, -20]}>
-            <div className="text-center">
-              <p className="font-bold">hei im intersted with your offer, im going to location soon!</p>
-              <p className="text-xs">Jarak jemput <b>{pickupRoute.distance.toFixed(1)} km</b>, estimasi <b>{pickupRoute.duration.toFixed(0)} menit</b>.</p>
+             <div className="flex flex-col justify-center items-center gap-1">
+              {hasDriverArrived ? (
+                  <span className="font-bold">Knock, Knock! im here</span>
+              ) : (
+                <>
+                  <span className="font-bold">Hei im intersted with your offering</span>
+                  <span className="font-bold">Im going to location soon!</span>
+                  {pickupRoute && (
+                    <div className='flex flex-row gap-2 mt-2 w-full items-center justify-center'>
+                      <Route size={16} className='color-tertiary' />
+                      <span className="font-bold text-xs color-senary">{pickupRoute.distance.toFixed(1)} KM</span>
+                      <Timer size={16} className='color-tertiary' />
+                      <span className="font-bold text-xs color-senary">{pickupRoute.duration.toFixed(0)} Minutes</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </Popup>
         </Marker>

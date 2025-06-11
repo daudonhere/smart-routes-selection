@@ -33,6 +33,8 @@ export default function CardWrapper() {
   const startOfferSimulation = useRouteStore((state) => state.startOfferSimulation);
   const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
   const cancelOffer = useRouteStore((state) => state.cancelOffer);
+  const isDriverEnroute = useRouteStore((state) => state.isDriverEnroute);
+  const hasDriverArrived = useRouteStore((state) => state.hasDriverArrived);
   const [pricePerKm, setPricePerKm] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0].code);
   const selectedCurrencySymbol = currencies.find(c => c.code === selectedCurrency)?.symbol || 'Rp';
@@ -155,12 +157,18 @@ export default function CardWrapper() {
                 let isButtonDisabledForThisCard = true;
 
                 if (route.isPrimary) {
-                  if (hasDriver) {
+                  if (hasDriverArrived) {
+                    buttonText = 'Driver Arieved';
+                    isButtonDisabledForThisCard = true;
+                  } else if (isDriverEnroute) {
+                    buttonText = 'Driver On The Way';
+                    isButtonDisabledForThisCard = true;
+                  } else if (hasDriver) {
                     buttonText = 'Cancel';
                     buttonAction = cancelOffer;
                     isButtonDisabledForThisCard = false;
                   } else if (isOffering) {
-                    buttonText = 'Mencari Driver...';
+                    buttonText = 'Search Driver...';
                     isButtonDisabledForThisCard = true;
                   } else {
                     buttonText = 'Offer';
@@ -215,7 +223,7 @@ export default function CardWrapper() {
                         {isSlowSpeed && (
                           <div className="flex items-center gap-2 color-nonary text-xs">
                             <AlertTriangle size={16} />
-                            <span>Route maybe congested</span>
+                            <span>Route may be congested</span>
                           </div>
                         )}
                         {showTollFeeWarning && (

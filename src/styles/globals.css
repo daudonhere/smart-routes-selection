@@ -146,3 +146,7 @@ body {
 .driver-popup .leaflet-popup-close-button:hover {
   color: var(--color-tertiary) !important;
 }
+
+.leaflet-marker-transition .leaflet-marker-icon {
+  transition: transform 0.3s linear;
+}

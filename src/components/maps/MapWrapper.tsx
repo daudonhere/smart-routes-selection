@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useRouteStore } from '@/stores/routesStore';
 import { useEffect } from 'react';
+import L from 'leaflet';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
@@ -22,6 +23,10 @@ export default function MapWrapper() {
   const nearbyDrivers = useRouteStore((state) => state.nearbyDrivers);
   const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
   const pickupRoute = useRouteStore((state) => state.pickupRoute);
+  const isDriverEnroute = useRouteStore((state) => state.isDriverEnroute);
+  const driverPosition = useRouteStore((state) => state.driverPosition);
+  const driverDirection = useRouteStore((state) => state.driverDirection);
+  const hasDriverArrived = useRouteStore((state) => state.hasDriverArrived);
 
   useEffect(() => {
     if (error) {
@@ -33,7 +38,6 @@ export default function MapWrapper() {
       return () => clearTimeout(timer);
     }
   }, [error, clearError]);
-
 
   return (
     <div className="h-full w-full relative">
@@ -48,12 +52,16 @@ export default function MapWrapper() {
         destinationPoint={destinationPoint}
         routes={routes}
         onMarkerDragEnd={updateLocationFromMap}
-        onMapClick={(latlng) => updateLocationFromMap(latlng, 'destination')}
+        onMapClick={(latlng: L.LatLng) => updateLocationFromMap(latlng, 'destination')}
         onRouteSelect={setActiveRoute}
         isOffering={isOffering}
         nearbyDrivers={nearbyDrivers}
         acceptingDriver={acceptingDriver}
         pickupRoute={pickupRoute}
+        isDriverEnroute={isDriverEnroute}
+        driverPosition={driverPosition}
+        driverDirection={driverDirection}
+        hasDriverArrived={hasDriverArrived}
       />
     </div>
   );
