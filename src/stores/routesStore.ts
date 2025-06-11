@@ -7,7 +7,9 @@ import polyline from '@mapbox/polyline';
 
 const MOTORBIKE_SPEED_ADJUSTMENT = 17;
 const CAR_TOLL_SPEED_ADJUSTMENT = 15;
-const CAR_NON_TOLL_SPEED_ADJUSTMENT = -37;
+const CAR_NON_TOLL_SPEED_ADJUSTMENT = -30;
+const TRUCK_TOLL_SPEED_ADJUSTMENT = 10;
+const TRUCK_NON_TOLL_SPEED_ADJUSTMENT = -15;
 
 const processRawRouteToInfo = (
   rawRoute: ORSRoute,
@@ -23,10 +25,16 @@ const processRawRouteToInfo = (
 
   let adjustedAverageSpeed = orsAverageSpeed;
 
-  if (transportMode === 'motorbike') {
-    adjustedAverageSpeed += MOTORBIKE_SPEED_ADJUSTMENT;
-  } else if (transportMode === 'car') {
-    adjustedAverageSpeed += hasToll ? CAR_TOLL_SPEED_ADJUSTMENT : CAR_NON_TOLL_SPEED_ADJUSTMENT;
+  switch (transportMode) {
+    case 'motorbike':
+      adjustedAverageSpeed += MOTORBIKE_SPEED_ADJUSTMENT;
+      break;
+    case 'car':
+      adjustedAverageSpeed += hasToll ? CAR_TOLL_SPEED_ADJUSTMENT : CAR_NON_TOLL_SPEED_ADJUSTMENT;
+      break;
+    case 'truck':
+      adjustedAverageSpeed += hasToll ? TRUCK_TOLL_SPEED_ADJUSTMENT : TRUCK_NON_TOLL_SPEED_ADJUSTMENT;
+      break;
   }
 
   if (adjustedAverageSpeed < 5) {
@@ -134,10 +142,10 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             set({ departurePoint: startInfo.coords, departureAddress: startInfo.name, destinationPoint: endInfo.coords, destinationAddress: endInfo.name });
 
             const finalRoutes: RouteInfo[] = [];
-
-            if (transportMode === 'car' && includeTolls) {
-                const routesWithTollRaw = await fetchOptimalRoutes(startInfo, endInfo, 'car', false);
-                const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, 'car', true);
+            
+            if ((transportMode === 'car' || transportMode === 'truck') && includeTolls) {
+                const routesWithTollRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, false);
+                const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, true);
 
                 const tollCandidateRaw = routesWithTollRaw?.[0];
                 const nonTollCandidateRaw = routesWithoutTollRaw?.[0];
@@ -152,11 +160,11 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 if (tollCandidateRaw) {
                     const isTrulyTollRoute = nonTollCandidateRaw 
                         ? (tollCandidateRaw.summary.duration < nonTollCandidateRaw.summary.duration) 
-                        : false;
+                        : false; 
 
                     tollOption = {
                         id: `route-toll-${Date.now()}`,
-                        ...processRawRouteToInfo(tollCandidateRaw, 'car', isTrulyTollRoute),
+                        ...processRawRouteToInfo(tollCandidateRaw, transportMode, isTrulyTollRoute),
                         isPrimary: false,
                     };
                 }
@@ -164,7 +172,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 if (nonTollCandidateRaw) {
                     nonTollOption = {
                         id: `route-non-toll-${Date.now()}`,
-                        ...processRawRouteToInfo(nonTollCandidateRaw, 'car', false),
+                        ...processRawRouteToInfo(nonTollCandidateRaw, transportMode, false),
                         isPrimary: false,
                     };
                 }
@@ -186,7 +194,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 }
 
             } else {
-                const avoidToll = transportMode === 'motorbike' || (transportMode === 'car' && !includeTolls);
+                const avoidToll = transportMode === 'motorbike' || !includeTolls;
                 const fetchedRoutesRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, avoidToll);
 
                 fetchedRoutesRaw.forEach((rawRoute, index) => {

@@ -22,7 +22,20 @@ export const fetchOptimalRoutes = async (
 ): Promise<ORSRoute[]> => {
   if (!OPENROUTESERVICE_API_KEY) throw new Error("API Key for routing service is not configured.");
 
-  const profile = transportMode === 'motorbike' ? 'cycling-road' : 'driving-car';
+  let profile: string;
+  switch (transportMode) {
+    case 'motorbike':
+      profile = 'cycling-road';
+      break;
+    case 'car':
+      profile = 'driving-car';
+      break;
+    case 'truck':
+      profile = 'driving-hgv';
+      break;
+    default:
+      profile = 'driving-car';
+  }
   
   const baseBody = {
     coordinates: [
@@ -40,7 +53,7 @@ export const fetchOptimalRoutes = async (
 
   const options: ORSApiOptions = {};
 
-  if (transportMode === 'car' && avoidTollways) {
+  if ((transportMode === 'car' || transportMode === 'truck') && avoidTollways) {
     options.avoid_features = ['tollways', 'ferries'];
   }
 

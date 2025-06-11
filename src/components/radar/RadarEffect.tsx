@@ -8,9 +8,11 @@ interface RadarEffectProps {
     center: [number, number];
 }
 
+type VehicleType = 'car' | 'bike' | 'truck';
+
 export default function RadarEffect({ center }: RadarEffectProps) {
     const [radius, setRadius] = useState(500);
-    const [vehiclePositions, setVehiclePositions] = useState<({ type: 'car' | 'bike', position: [number, number] })[]>([]);
+    const [vehiclePositions, setVehiclePositions] = useState<({ type: VehicleType, position: [number, number] })[]>([]);
     
     const frameRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
@@ -23,17 +25,18 @@ export default function RadarEffect({ center }: RadarEffectProps) {
         const generateRandomPositions = () => {
             const positions = [];
             const [centerLat, centerLon] = center;
+            const vehicleTypes: VehicleType[] = ['car', 'car', 'car', 'bike', 'bike', 'bike', 'truck', 'truck', 'truck'];
 
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < vehicleTypes.length; i++) {
                 const randomDistance = Math.sqrt(Math.random()) * maxRadius;
                 const randomAngle = Math.random() * 2 * Math.PI;
                 const latOffset = (randomDistance * Math.cos(randomAngle)) / 111111;
                 const lonOffset = (randomDistance * Math.sin(randomAngle)) / (111111 * Math.cos(centerLat * Math.PI / 180));
 
                 positions.push({
-                    type: i < 3 ? 'car' : 'bike',
+                    type: vehicleTypes[i],
                     position: [centerLat + latOffset, centerLon + lonOffset]
-                } as { type: 'car' | 'bike'; position: [number, number] });
+                } as { type: VehicleType; position: [number, number] });
             }
             setVehiclePositions(positions);
         };
@@ -59,6 +62,14 @@ export default function RadarEffect({ center }: RadarEffectProps) {
         };
     }, []);
 
+    const getIconUrl = (type: VehicleType): string => {
+        switch (type) {
+            case 'car': return '/car/car-front.png';
+            case 'bike': return '/bike/bike-front.png';
+            case 'truck': return '/truck/truck-front.png';
+        }
+    }
+    
     return (
         <>
             <Circle
@@ -77,7 +88,7 @@ export default function RadarEffect({ center }: RadarEffectProps) {
                     position={vehicle.position}
                     center={center}
                     animatedRadius={radius}
-                    iconUrl={vehicle.type === 'car' ? '/car/car-front.png' : '/bike/bike-front.png'}
+                    iconUrl={getIconUrl(vehicle.type)}
                 />
             ))}
         </>

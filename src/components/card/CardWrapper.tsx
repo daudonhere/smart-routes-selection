@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouteStore } from '@/stores/routesStore';
-import { Car, Bike, Truck, Info, Route, Gauge, Timer, TrafficCone, AlertTriangle } from 'lucide-react';
+import { Car, Bike, Truck, Info, Route, Gauge, Timer, TrafficCone, AlertTriangle, CircleDollarSign } from 'lucide-react';
 import { RouteInfo } from '@/libs/types';
 import AutocompleteInput from './AutocompleteInput';
 
@@ -51,25 +51,25 @@ export default function CardWrapper() {
     <div className="flex flex-col gap-2 h-full">
         <div className="flex flex-row gap-2 py-4 w-full h-[10%] justify-center">
           <div onClick={() => setTransportMode('motorbike')}
-            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'motorbike' ? 'background-tertiary color-primary' : 'background-quaternary hover:bg-gray-600'}`}
+            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'motorbike' ? 'background-tertiary color-primary' : 'background-quaternary color-senary hover:bg-gray-600'}`}
           >
             <Bike size={24} />
           </div>
           <div
             onClick={() => setTransportMode('car')}
-            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'car' ? 'background-tertiary color-quaternary' : 'background-quaternary hover:bg-gray-600'}`}
+            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'car' ? 'background-tertiary color-primary' : 'background-quaternary color-senary hover:bg-gray-600'}`}
           >
             <Car size={24} />
           </div>
           <div
-            onClick={() => setTransportMode('car')}
-            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'car' ? 'background-tertiary color-quaternary' : 'background-quaternary hover:bg-gray-600'}`}
+            onClick={() => setTransportMode('truck')}
+            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'truck' ? 'background-tertiary color-primary' : 'background-quaternary color-senary hover:bg-gray-600'}`}
           >
             <Truck size={24} />
           </div>
         </div>
         <div className="flex flex-row gap-2 w-full h-[30%]">
-          <form onSubmit={handleFormSubmit} className="flex flex-col gap-2">
+          <form onSubmit={handleFormSubmit} className="flex flex-col gap-2 w-full">
             <AutocompleteInput
               value={departureAddress}
               onValueChange={setDepartureFromInput}
@@ -83,16 +83,16 @@ export default function CardWrapper() {
               placeholder="Destination"
             />
   
-            {transportMode === 'car' && (
+            {(transportMode === 'car' || transportMode === 'truck') && (
               <div className="ml-1 flex items-center justify-start">
                 <input
                   type="checkbox"
                   id="includeTolls"
                   checked={includeTolls}
                   onChange={(e) => setIncludeTolls(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-500 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-gray-500 bg-gray-700 text-tertiary focus:ring-tertiary"
                 />
-                <label htmlFor="includeTolls" className="ml-2 block text-sm text-gray-300">
+                <label htmlFor="includeTolls" className="ml-2 block text-sm color-senary">
                   Toll Road
                 </label>
               </div>
@@ -102,10 +102,10 @@ export default function CardWrapper() {
               <select
                 value={selectedCurrency}
                 onChange={(e) => setSelectedCurrency(e.target.value)}
-                className="cursor-pointer px-2 py-1 background-quaternary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300"
+                className="cursor-pointer px-2 py-1 background-quaternary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300 color-senary"
               >
                 {currencies.map(c => 
-                  <option key={c.code} value={c.code} className='absolute z-20 w-full mt-1 background-primary border line-quinary rounded-md shadow-lg max-h-60 overflow-auto'>
+                  <option key={c.code} value={c.code} className='background-secondary color-senary'>
                       {c.name}
                   </option>
                 )}
@@ -116,21 +116,21 @@ export default function CardWrapper() {
                 value={pricePerKm}
                 onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setPricePerKm(e.target.value)}
                 placeholder="Price/KM"
-                className="w-full py-1 px-2 background-quaternary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300"
+                className="w-full py-1 px-2 background-quaternary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300 color-senary"
               />
             </div>
   
             <button
               type="submit"
               disabled={isButtonDisabled}
-              className="cursor-pointer w-full mt-1 background-tertiary hover:bg-yellow-400 color-primary font-bold py-1.5 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:cursor-not-allowed transition-colors"
+              className="cursor-pointer w-full mt-1 background-tertiary hover:bg-yellow-400 color-primary font-bold py-1.5 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:background-quinary disabled:cursor-not-allowed transition-colors"
             >
-              {isRouteLoading ? 'Calculate Routes...' : 'Search Routes'}
+              {isRouteLoading ? 'Calculating...' : 'Search Routes'}
             </button>
           </form>
         </div>
 
-        <div className="flex flex-1 flex-col py-2 w-full">
+        <div className="flex flex-1 flex-col py-2 w-full overflow-y-auto">
           {error && !isRouteLoading && (
               <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-center text-red-300">
                   {error}
@@ -141,53 +141,61 @@ export default function CardWrapper() {
               {routes.map((route: RouteInfo) => { 
                 const totalCost = calculateCost(route.distance);
                 const isSlowSpeed = route.averageSpeed < 30;
+                // REVISI: Buat kondisi untuk menampilkan peringatan biaya tol
+                const showTollFeeWarning = (transportMode === 'car' || transportMode === 'truck') && route.hasToll;
   
                 return (
-                  <div key={route.id} onClick={() => !route.isPrimary && setActiveRoute(route.id)} className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-1 line-tertiary' : 'background-primary border-1 border-gray-400 hover:bg-gray-800 cursor-pointer'}`}>
+                  <div key={route.id} onClick={() => !route.isPrimary && setActiveRoute(route.id)} className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-2 line-tertiary shadow-lg shadow-tertiary/20' : 'background-primary border-2 line-quinary hover:line-doctary cursor-pointer'}`}>
                     <p className="font-bold color-tertiary flex items-center gap-2">
                       <Info size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
                       {route.isPrimary ? 'Preferred Route' : 'Alternative Route'}
                     </p>
-                     <div className="flex flex-col gap-1 w-full mt-2">
+                     <div className="flex flex-col gap-2 w-full mt-1">
                       <div className="flex flex-row gap-6">
-                        <div className='flex flex-row gap-1 w-full'>
+                        <div className='flex flex-row gap-1 w-full items-center'>
                           <Route size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
-                          <span className="font-bold text-xs text-white">{route.distance.toFixed(2)} KM</span>
+                          <span className="font-bold text-xs color-senary">{route.distance.toFixed(2)} KM</span>
                         </div>
-                        <div className='flex flex-row gap-1 w-full'>
+                        <div className='flex flex-row gap-1 w-full items-center'>
                           <Gauge size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
-                          <span className="font-bold text-xs text-white">{route.averageSpeed.toFixed(0)} Kmh</span>
+                          <span className="font-bold text-xs color-senary">{route.averageSpeed.toFixed(0)} Kmh</span>
                         </div>
                       </div>
                       <div className="flex flex-row gap-6">
-                        <div className='flex flex-row gap-1 w-full'>
+                        <div className='flex flex-row gap-1 w-full items-center'>
                           <Timer size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
-                          <span className="font-bold text-xs text-white">{route.duration.toFixed(0)} Minutes</span>
+                          <span className="font-bold text-xs color-senary">{route.duration.toFixed(0)} Minutes</span>
                         </div>
-                        <div className='flex flex-row gap-1 w-full'>
+                        <div className='flex flex-row gap-1 w-full items-center'>
                           <TrafficCone size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
-                          <span className="font-bold text-xs text-white">
-                          {transportMode === 'car'
-                            ? (route.hasToll ? 
-                              'Via Toll' : 
-                              'Without Toll')
-                            : 'Outside Toll'
+                          <span className="font-bold text-xs color-senary">
+                          {transportMode === 'motorbike'
+                            ? 'Outside Toll'
+                            : (route.hasToll ? 'Via Toll' : 'Without Toll')
                           }
                           </span>
                         </div>
                       </div>
-                      <div className="flex flex-row">
+                      
+                      <div className="flex flex-col gap-1 mt-1">
                         {isSlowSpeed && (
-                          <div className="flex items-center gap-2 text-yellow-300 text-xs">
+                          <div className="flex items-center gap-2 color-nonary text-xs">
                             <AlertTriangle size={16} />
-                            <span>Route maybe congested</span>
+                            <span>Route may be congested</span>
+                          </div>
+                        )}
+                        {showTollFeeWarning && (
+                           <div className="flex items-center gap-2 color-nonary text-xs">
+                            <CircleDollarSign size={16} />
+                            <span>price exclude toll fees</span>
                           </div>
                         )}
                       </div>
                     </div>
-                    {totalCost !== null && (
-                      <div className="flex flex-row gap-2 mt-3 pt-3 border-t border-gray-700">
-                        <div className="flex flex-1 w-full">
+
+                    {totalCost !== null && totalCost > 0 &&(
+                      <div className="flex flex-row gap-2 mt-3 pt-2 border-t line-quinary">
+                        <div className="flex flex-1 w-full items-center">
                           <p className="text-sm font-medium color-tertiary flex items-center gap-2">
                             <span className={`font-bold color-senary ${route.isPrimary ? 'text-lg' : 'text-base'}`}>
                                 {selectedCurrencySymbol} {totalCost.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -195,11 +203,20 @@ export default function CardWrapper() {
                           </p>
                         </div>
                         <div className="flex flex-1 w-full">
-                          <button type="submit"
-                            className="cursor-pointer w-full background-tertiary hover:bg-yellow-400 color-primary font-bold text-xs rounded-sm focus:outline-none focus:shadow-outline disabled:cursor-not-allowed transition-colors"
-                          >
-                            Offer
-                          </button>
+                         <button
+                          type="button"
+                          disabled={!route.isPrimary}
+                          className={`w-full font-bold text-xs rounded-sm focus:outline-none focus:shadow-outline transition-colors py-2 
+                            ${
+                              route.isPrimary
+                                ? 'background-tertiary hover:bg-yellow-400 color-primary cursor-pointer'
+                                : 'background-quaternary color-doctary'
+                            } 
+                            disabled:cursor-not-allowed`
+                          }
+                        >
+                          Offer
+                        </button>
                         </div>
                       </div>
                     )}

@@ -1,4 +1,4 @@
-export type TransportMode = 'motorbike' | 'car';
+export type TransportMode = 'motorbike' | 'car' | 'truck';
 
 export interface ORSStep {
   toll?: boolean | string | Record<string, unknown>;
