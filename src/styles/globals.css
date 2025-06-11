@@ -8,12 +8,12 @@
 }
 
 :root {
-  --color-primary: #1a1a1a;
-  --color-secondary: #f0f6ff;
-  --color-tertiary: #f70626;
-  --color-quaternary: #535353;
-  --color-quinary: #80bcf8;
-  --color-senary: #2b2b2d;
+  --color-primary: #000000;
+  --color-secondary: #202020;
+  --color-tertiary: #f7eb06;
+  --color-quaternary: #37374e;
+  --color-quinary: #5c5c5c;
+  --color-senary: #f3f3f3;
   --color-septenary: #0fd105;
   --color-octonary: #ff1a1a;
   --color-nonary: #ffaa00;
