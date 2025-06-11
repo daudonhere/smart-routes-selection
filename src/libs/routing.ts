@@ -73,9 +73,9 @@ export const fetchOptimalRoutes = async (
   const data: ORSDirectionsResponse = await res.json();
 
   if (!res.ok || !data.routes?.length) {
-    const errorMessage = data.error?.message || 'Gagal mengambil rute dari OpenRouteService.';
-    if (errorMessage.includes("point is not found")) {
-        throw new Error("Satu atau kedua lokasi tidak dapat dijangkau atau ditemukan di peta.");
+    const errorMessage = data.error?.message || 'Failed to fetch route from ORS';
+    if (errorMessage.includes("Point is not found")) {
+        throw new Error("Locations cannot be reached or found on the map");
     }
     throw new Error(errorMessage);
   }

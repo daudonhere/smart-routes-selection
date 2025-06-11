@@ -73,7 +73,7 @@ interface RouteState {
     isDriverEnroute: boolean;
     driverPosition: [number, number] | null;
     driverDirection: DriverDirection;
-    hasDriverArrived: boolean; // REVISI: State baru untuk menandakan driver telah tiba
+    hasDriverArrived: boolean;
     initializeLocation: () => void;
     setTransportMode: (mode: TransportMode) => void;
     setIncludeTolls: (include: boolean) => void;
@@ -145,14 +145,14 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             const name = await fetchAddressName(coords);
             set({ userLocation: coords, departurePoint: coords, departureAddress: name, isMapLoading: false, error: null });
         };
-        const handleGeoError = () => set({ userLocation: null, departurePoint: null, departureAddress: '', isMapLoading: false, error: "GPS tidak aktif atau izin ditolak. Silakan pilih lokasi keberangkatan secara manual di peta atau kolom input." });
+        const handleGeoError = () => set({ userLocation: null, departurePoint: null, departureAddress: '', isMapLoading: false, error: "GPS is not active or permission is denied. Please select the departure location manually on the map or input field" });
         if (!navigator.geolocation) { handleGeoError(); return; }
         navigator.geolocation.getCurrentPosition((position) => init([position.coords.latitude, position.coords.longitude]), handleGeoError, { timeout: 10000, enableHighAccuracy: true });
     },
     updateLocationFromMap: async (latlng, type) => {
         get().clearOffer();
         const coords: [number, number] = [latlng.lat, latlng.lng];
-        const stateUpdate = type === 'departure' ? { departurePoint: coords, departureAddress: 'Memperbarui alamat...' } : { destinationPoint: coords, destinationAddress: 'Memperbarui alamat...' };
+        const stateUpdate = type === 'departure' ? { departurePoint: coords, departureAddress: 'Update address...' } : { destinationPoint: coords, destinationAddress: 'Update address...' };
         set({ ...stateUpdate, routes: [] });
         get().clearError();
         const name = await fetchAddressName(coords);
@@ -178,14 +178,14 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     fetchRoutes: async () => {
         get().clearOffer();
         const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
-        if (!departureAddress || !destinationAddress) { set({ error: "Lokasi keberangkatan dan tujuan harus diisi." }); return; }
+        if (!departureAddress || !destinationAddress) { set({ error: "Departure and destination locations must be filled in" }); return; }
         set({ isRouteLoading: true, error: null, routes: [] });
 
         try {
             const startInfo = await resolveLocationToInfo(departureAddress, userLocation);
             const endInfo = await resolveLocationToInfo(destinationAddress, userLocation);
 
-            if (!startInfo || !endInfo) { throw new Error("Satu atau kedua lokasi tidak dapat ditemukan."); }
+            if (!startInfo || !endInfo) { throw new Error("Location could not be found"); }
 
             set({ departurePoint: startInfo.coords, departureAddress: startInfo.name, destinationPoint: endInfo.coords, destinationAddress: endInfo.name });
 
@@ -196,7 +196,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, true);
                 const tollCandidateRaw = routesWithTollRaw?.[0];
                 const nonTollCandidateRaw = routesWithoutTollRaw?.[0];
-                if (!tollCandidateRaw && !nonTollCandidateRaw) { throw new Error("Tidak dapat menemukan rute dari OpenRouteService."); }
+                if (!tollCandidateRaw && !nonTollCandidateRaw) { throw new Error("Unable to find route from ORS"); }
                 let tollOption: RouteInfo | null = null;
                 let nonTollOption: RouteInfo | null = null;
                 if (tollCandidateRaw) {
@@ -233,11 +233,11 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                 });
             }
 
-            if (finalRoutes.length === 0) { throw new Error("Tidak ada rute yang dapat ditemukan antara dua lokasi ini."); }
+            if (finalRoutes.length === 0) { throw new Error("No route could be found between these two locations"); }
 
             set({ routes: finalRoutes, isRouteLoading: false });
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tak terduga.";
+            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
             set({ error: errorMessage, isRouteLoading: false, routes: [] });
         }
     },
@@ -339,8 +339,8 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         const chosenDriver = drivers[Math.floor(Math.random() * drivers.length)];
         
         try {
-          const driverLocationInfo: LocationInfo = { coords: chosenDriver.position, name: 'Lokasi Driver' };
-          const departureLocationInfo: LocationInfo = { coords: departure, name: 'Lokasi Penjemputan' };
+          const driverLocationInfo: LocationInfo = { coords: chosenDriver.position, name: 'Driver Location' };
+          const departureLocationInfo: LocationInfo = { coords: departure, name: 'Pickup Location' };
           const pickupRouteRaw = await fetchOptimalRoutes(driverLocationInfo, departureLocationInfo, chosenDriver.type, true);
 
           if (pickupRouteRaw.length > 0) {
@@ -355,9 +355,9 @@ export const useRouteStore = create<RouteState>((set, get) => ({
           }
         } catch (e) {
           if (e instanceof Error) {
-            console.error("Gagal menghitung rute penjemputan:", e.message);
+            console.error("Failed to calculate pickup route", e.message);
           } else {
-            console.error("Gagal menghitung rute penjemputan:", e);
+            console.error("Failed to calculate pickup route", e);
           }
         }
         

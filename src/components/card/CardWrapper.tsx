@@ -152,7 +152,7 @@ export default function CardWrapper() {
                 const upperSpeed = lowerSpeed + 10;
                 const hasDriver = !!acceptingDriver;
                 const isCardClickable = !route.isPrimary && !hasDriver;
-                let buttonText = 'Offer';
+                let buttonText = 'Make An Offer';
                 let buttonAction = () => {};
                 let isButtonDisabledForThisCard = true;
 
@@ -161,22 +161,22 @@ export default function CardWrapper() {
                     buttonText = 'Driver Arieved';
                     isButtonDisabledForThisCard = true;
                   } else if (isDriverEnroute) {
-                    buttonText = 'Driver On The Way';
+                    buttonText = 'On The Way';
                     isButtonDisabledForThisCard = true;
                   } else if (hasDriver) {
                     buttonText = 'Cancel';
                     buttonAction = cancelOffer;
                     isButtonDisabledForThisCard = false;
                   } else if (isOffering) {
-                    buttonText = 'Search Driver...';
+                    buttonText = 'Searching';
                     isButtonDisabledForThisCard = true;
                   } else {
-                    buttonText = 'Offer';
+                    buttonText = 'Make An Offer';
                     buttonAction = startOfferSimulation;
                     isButtonDisabledForThisCard = false;
                   }
                 } else {
-                  buttonText = 'Offer';
+                  buttonText = 'Make An Offer';
                   isButtonDisabledForThisCard = true;
                 }
 
@@ -194,7 +194,7 @@ export default function CardWrapper() {
                       <div className="flex flex-row gap-6">
                         <div className='flex flex-row gap-1 w-full items-center'>
                           <Route size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
-                          <span className="font-bold text-xs color-senary">{route.distance.toFixed(2)} KM</span>
+                          <span className="font-bold text-xs color-senary">{route.distance.toFixed(2)} Km</span>
                         </div>
                         <div className='flex flex-row gap-1 w-full items-center'>
                           <Gauge size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
@@ -223,13 +223,13 @@ export default function CardWrapper() {
                         {isSlowSpeed && (
                           <div className="flex items-center gap-2 color-nonary text-xs">
                             <AlertTriangle size={16} />
-                            <span>Route may be congested</span>
+                            <span>Route maybe congested</span>
                           </div>
                         )}
                         {showTollFeeWarning && (
                            <div className="flex items-center gap-2 color-nonary text-xs">
                             <CircleDollarSign size={16} />
-                            <span>price exclude toll fees</span>
+                            <span>Price exclude toll fees</span>
                           </div>
                         )}
                       </div>

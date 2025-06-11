@@ -125,7 +125,7 @@ export default function MapComponent({
           }}
           zIndexOffset={100}
         >
-          <Popup>Lokasi Keberangkatan</Popup>
+          <Popup>Departure Location</Popup>
         </Marker>
       )}
 
@@ -138,7 +138,7 @@ export default function MapComponent({
             dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination'),
           }}
         >
-          <Popup>Lokasi Tujuan</Popup>
+          <Popup>Destination Location</Popup>
         </Marker>
       )}
 
@@ -175,17 +175,17 @@ export default function MapComponent({
           icon={finalDriverIcon}
         >
           <Popup className="driver-popup" offset={[0, -20]}>
-             <div className="flex flex-col justify-center items-center gap-1">
+            <div className="flex flex-col justify-center items-center gap-1">
               {hasDriverArrived ? (
-                  <span className="font-bold">Knock, Knock! im here</span>
+                  <span className="font-bold">Knock, Knock! Im Here</span>
               ) : (
                 <>
-                  <span className="font-bold">Hei im intersted with your offering</span>
+                  <span className="font-bold">Hei im intersted with your offer</span>
                   <span className="font-bold">Im going to location soon!</span>
                   {pickupRoute && (
                     <div className='flex flex-row gap-2 mt-2 w-full items-center justify-center'>
                       <Route size={16} className='color-tertiary' />
-                      <span className="font-bold text-xs color-senary">{pickupRoute.distance.toFixed(1)} KM</span>
+                      <span className="font-bold text-xs color-senary">{pickupRoute.distance.toFixed(1)} Km</span>
                       <Timer size={16} className='color-tertiary' />
                       <span className="font-bold text-xs color-senary">{pickupRoute.duration.toFixed(0)} Minutes</span>
                     </div>
