@@ -7,7 +7,7 @@ import L from 'leaflet';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Memuat Peta...</p></div>,
+  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Fetching Maps...</p></div>,
 });
 
 export default function MapWrapper() {

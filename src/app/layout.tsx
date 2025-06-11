@@ -6,8 +6,8 @@ import "@/styles/globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Route Optimizer",
-  description: "Optimal route and cost calculation",
+  title: "Smart Route Selection",
+  description: "Optimum route and cost calculation",
 };
 
 export default function RootLayout({
