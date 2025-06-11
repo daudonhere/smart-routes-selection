@@ -51,17 +51,17 @@ export default function AutocompleteInput({ value, onValueChange, onSelect, plac
                 onChange={(e) => onValueChange(e.target.value)}
                 placeholder={placeholder}
                 autoComplete="off"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm outline-none focus:border-indigo-400"
+                className="w-full py-1 px-2 background-quaternary color-senary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300"
             />
-            {isLoading && <Loader2 className="absolute top-2.5 right-3 h-5 w-5 text-gray-400 animate-spin" />}
+            {isLoading && <Loader2 className="absolute top-2.5 right-3 h-5 w-5 color-quinary animate-spin" />}
             
             {suggestions.length > 0 && (
-                <ul className="absolute z-20 w-full mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                <ul className="absolute z-20 w-full mt-1 bg-neutral-900 border line-quinary rounded-md shadow-lg max-h-60 overflow-auto">
                     {suggestions.map((item, index) => (
                         <li
                             key={`${item.name}-${index}`}
                             onClick={() => handleSelect(item)}
-                            className="px-3 py-2 text-sm text-gray-300 cursor-pointer hover:bg-indigo-600 hover:text-white"
+                            className="px-3 py-2 text-sm color-senary cursor-pointer hover:bg-yellow-400 hover:text-black"
                         >
                             {item.name}
                         </li>

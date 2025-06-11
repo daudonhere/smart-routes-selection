@@ -8,12 +8,12 @@
 }
 
 :root {
-  --color-primary: #1a1a1a;
-  --color-secondary: #f0f6ff;
-  --color-tertiary: #f70626;
-  --color-quaternary: #535353;
-  --color-quinary: #80bcf8;
-  --color-senary: #2b2b2d;
+  --color-primary: #000000;
+  --color-secondary: #202020;
+  --color-tertiary: #f7eb06;
+  --color-quaternary: #37374e;
+  --color-quinary: #5c5c5c;
+  --color-senary: #f3f3f3;
   --color-septenary: #0fd105;
   --color-octonary: #ff1a1a;
   --color-nonary: #ffaa00;
@@ -119,4 +119,34 @@ body {
   scroll-behavior: smooth;
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+}
+
+.driver-popup .leaflet-popup-content-wrapper {
+  background-color: var(--color-primary);
+  color: var(--color-senary);
+  border-radius: 8px;
+  border: 1px solid var(--color-tertiary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.driver-popup .leaflet-popup-content {
+  margin: 12px;
+  line-height: 1.5;
+}
+
+.driver-popup .leaflet-popup-tip {
+  background-color: var(--color-primary);
+}
+
+.driver-popup .leaflet-popup-close-button {
+  color: var(--color-senary) !important;
+  transition: color 0.2s ease-in-out;
+}
+
+.driver-popup .leaflet-popup-close-button:hover {
+  color: var(--color-tertiary) !important;
+}
+
+.leaflet-marker-transition .leaflet-marker-icon {
+  transition: transform 0.3s linear;
 }

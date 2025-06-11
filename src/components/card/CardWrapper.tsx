@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouteStore } from '@/stores/routesStore';
-import { Car, Bike, CircleDollarSign, Info, Route, AlertTriangle } from 'lucide-react';
+import { Car, Bike, Truck, Info, Route, Gauge, Timer, TrafficCone, AlertTriangle, CircleDollarSign } from 'lucide-react';
 import { RouteInfo } from '@/libs/types';
 import AutocompleteInput from './AutocompleteInput';
 
@@ -10,9 +10,8 @@ const currencies = [
   { code: 'IDR', name: 'IDR', symbol: 'Rp' },
   { code: 'USD', name: 'USD', symbol: '$' },
   { code: 'SGD', name: 'SGD', symbol: '$' },
-  { code: 'JPY', name: 'Yen', symbol: '¥' },
-  { code: 'CNY', name: 'Yuan', symbol: '¥' },
-  { code: 'INR', name: 'Rupee', symbol: '₹' },
+  { code: 'JPY', name: 'YEN', symbol: '¥' },
+  { code: 'CNY', name: 'YUAN', symbol: '¥' },
 ];
 
 export default function CardWrapper() {
@@ -30,7 +29,13 @@ export default function CardWrapper() {
   const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
   const setPoint = useRouteStore((state) => state.setPoint);
-  const [pricePerKm, setPricePerKm] = useState('0');
+  const isOffering = useRouteStore((state) => state.isOffering);
+  const startOfferSimulation = useRouteStore((state) => state.startOfferSimulation);
+  const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
+  const cancelOffer = useRouteStore((state) => state.cancelOffer);
+  const isDriverEnroute = useRouteStore((state) => state.isDriverEnroute);
+  const hasDriverArrived = useRouteStore((state) => state.hasDriverArrived);
+  const [pricePerKm, setPricePerKm] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0].code);
   const selectedCurrencySymbol = currencies.find(c => c.code === selectedCurrency)?.symbol || 'Rp';
   const isButtonDisabled = isRouteLoading || !departureAddress.trim() || !destinationAddress.trim() || !pricePerKm.trim();
@@ -49,133 +54,221 @@ export default function CardWrapper() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background-secondary rounded-t-4xl shadow-[0_-8px_20px_rgba(0,0,0,0.5)] p-4 text-text-primary overflow-y-auto">
-      <div className="w-full max-w-lg mx-auto">
-        <div className="flex justify-center gap-6 mb-4">
-          <div
-            onClick={() => setTransportMode('motorbike')}
-            className={`cursor-pointer p-3 rounded-lg flex flex-col items-center gap-1 transition-all ${transportMode === 'motorbike' ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
+    <div className="flex flex-col gap-2 h-full">
+        <div className="flex flex-row gap-2 py-4 w-full h-[10%] justify-center">
+          <div onClick={() => setTransportMode('motorbike')}
+            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'motorbike' ? 'background-tertiary color-primary' : 'background-quaternary color-senary hover:bg-gray-600'}`}
           >
-            <Bike size={28} />
-            <span className="text-xs font-semibold">Motor</span>
+            <Bike size={24} />
           </div>
           <div
             onClick={() => setTransportMode('car')}
-            className={`cursor-pointer p-3 rounded-lg flex flex-col items-center gap-1 transition-all ${transportMode === 'car' ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
+            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'car' ? 'background-tertiary color-primary' : 'background-quaternary color-senary hover:bg-gray-600'}`}
           >
-            <Car size={28} />
-            <span className="text-xs font-semibold">Mobil</span>
+            <Car size={24} />
+          </div>
+          <div
+            onClick={() => setTransportMode('truck')}
+            className={`cursor-pointer p-3 rounded-md flex justify-center items-center transition-all ${transportMode === 'truck' ? 'background-tertiary color-primary' : 'background-quaternary color-senary hover:bg-gray-600'}`}
+          >
+            <Truck size={24} />
           </div>
         </div>
-
-        <form onSubmit={handleFormSubmit} className="space-y-3">
-          <AutocompleteInput
-            value={departureAddress}
-            onValueChange={setDepartureFromInput}
-            onSelect={(location) => setPoint('departure', location)}
-            placeholder="Lokasi keberangkatan"
-          />
-          <AutocompleteInput
-            value={destinationAddress}
-            onValueChange={setDestinationFromInput}
-            onSelect={(location) => setPoint('destination', location)}
-            placeholder="Tujuan"
-          />
-
-          {transportMode === 'car' && (
-            <div className="flex items-center justify-start py-1">
+        <div className="flex flex-row gap-2 w-full h-[30%]">
+          <form onSubmit={handleFormSubmit} className="flex flex-col gap-2 w-full">
+            <AutocompleteInput
+              value={departureAddress}
+              onValueChange={setDepartureFromInput}
+              onSelect={(location) => setPoint('departure', location)}
+              placeholder="Departure"
+            />
+            <AutocompleteInput
+              value={destinationAddress}
+              onValueChange={setDestinationFromInput}
+              onSelect={(location) => setPoint('destination', location)}
+              placeholder="Destination"
+            />
+  
+            {(transportMode === 'car' || transportMode === 'truck') && (
+              <div className="ml-1 flex items-center justify-start">
+                <input
+                  type="checkbox"
+                  id="includeTolls"
+                  checked={includeTolls}
+                  onChange={(e) => setIncludeTolls(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-500 bg-gray-700 text-tertiary focus:ring-tertiary"
+                />
+                <label htmlFor="includeTolls" className="ml-2 block text-sm color-senary">
+                  Toll Road
+                </label>
+              </div>
+            )}
+  
+            <div className="flex flex-row items-center gap-2">
+              <select
+                value={selectedCurrency}
+                onChange={(e) => setSelectedCurrency(e.target.value)}
+                className="cursor-pointer px-2 py-1 background-quaternary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300 color-senary"
+              >
+                {currencies.map(c => 
+                  <option key={c.code} value={c.code} className='background-secondary color-senary'>
+                      {c.name}
+                  </option>
+                )}
+              </select>
               <input
-                type="checkbox"
-                id="includeTolls"
-                checked={includeTolls}
-                onChange={(e) => setIncludeTolls(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-500 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
+                type="text"
+                inputMode="decimal"
+                value={pricePerKm}
+                onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setPricePerKm(e.target.value)}
+                placeholder="Price/KM"
+                className="w-full py-1 px-2 background-quaternary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300 color-senary"
               />
-              <label htmlFor="includeTolls" className="ml-2 block text-sm text-gray-300">
-                Sertakan rute via Tol
-              </label>
+            </div>
+  
+            <button
+              type="submit"
+              disabled={isButtonDisabled}
+              className="cursor-pointer w-full mt-1 background-tertiary hover:bg-yellow-400 color-primary font-bold py-1.5 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:background-quinary disabled:cursor-not-allowed transition-colors"
+            >
+              {isRouteLoading ? 'Calculating...' : 'Search Routes'}
+            </button>
+          </form>
+        </div>
+
+        <div className="flex flex-1 flex-col py-2 w-full overflow-y-auto">
+          {error && !isRouteLoading && (
+              <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-center text-red-300">
+                  {error}
+              </div>
+          )}
+          {routes.length > 0 && !isRouteLoading && (
+            <div className="flex flex-col gap-6">
+              {routes.map((route: RouteInfo) => { 
+                const totalCost = calculateCost(route.distance);
+                const isSlowSpeed = route.averageSpeed < 30;
+                const showTollFeeWarning = (transportMode === 'car' || transportMode === 'truck') && route.hasToll;
+                const lowerSpeed = route.averageSpeed;
+                const upperSpeed = lowerSpeed + 10;
+                const hasDriver = !!acceptingDriver;
+                const isCardClickable = !route.isPrimary && !hasDriver;
+                let buttonText = 'Offer';
+                let buttonAction = () => {};
+                let isButtonDisabledForThisCard = true;
+
+                if (route.isPrimary) {
+                  if (hasDriverArrived) {
+                    buttonText = 'Driver Arieved';
+                    isButtonDisabledForThisCard = true;
+                  } else if (isDriverEnroute) {
+                    buttonText = 'Driver On The Way';
+                    isButtonDisabledForThisCard = true;
+                  } else if (hasDriver) {
+                    buttonText = 'Cancel';
+                    buttonAction = cancelOffer;
+                    isButtonDisabledForThisCard = false;
+                  } else if (isOffering) {
+                    buttonText = 'Search Driver...';
+                    isButtonDisabledForThisCard = true;
+                  } else {
+                    buttonText = 'Offer';
+                    buttonAction = startOfferSimulation;
+                    isButtonDisabledForThisCard = false;
+                  }
+                } else {
+                  buttonText = 'Offer';
+                  isButtonDisabledForThisCard = true;
+                }
+
+                return (
+                  <div 
+                    key={route.id} 
+                    onClick={isCardClickable ? () => setActiveRoute(route.id) : undefined} 
+                    className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-2 line-tertiary shadow-lg shadow-tertiary/20' : 'background-primary border-2 line-quinary'} ${isCardClickable ? 'hover:line-doctary cursor-pointer' : ''} ${!isCardClickable && !route.isPrimary ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    <p className="font-bold color-tertiary flex items-center gap-2">
+                      <Info size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
+                      {route.isPrimary ? 'Preferred Route' : 'Alternative Route'}
+                    </p>
+                     <div className="flex flex-col gap-2 w-full mt-1">
+                      <div className="flex flex-row gap-6">
+                        <div className='flex flex-row gap-1 w-full items-center'>
+                          <Route size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
+                          <span className="font-bold text-xs color-senary">{route.distance.toFixed(2)} KM</span>
+                        </div>
+                        <div className='flex flex-row gap-1 w-full items-center'>
+                          <Gauge size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
+                          <span className="font-bold text-xs color-senary">
+                            {`${lowerSpeed.toFixed(0)} - ${upperSpeed.toFixed(0)} Kmh`}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-row gap-6">
+                        <div className='flex flex-row gap-1 w-full items-center'>
+                          <Timer size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
+                          <span className="font-bold text-xs color-senary">{route.duration.toFixed(0)} Minutes</span>
+                        </div>
+                        <div className='flex flex-row gap-1 w-full items-center'>
+                          <TrafficCone size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
+                          <span className="font-bold text-xs color-senary">
+                          {transportMode === 'motorbike'
+                            ? 'Outside Toll'
+                            : (route.hasToll ? 'Via Toll' : 'Without Toll')
+                          }
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 mt-1">
+                        {isSlowSpeed && (
+                          <div className="flex items-center gap-2 color-nonary text-xs">
+                            <AlertTriangle size={16} />
+                            <span>Route may be congested</span>
+                          </div>
+                        )}
+                        {showTollFeeWarning && (
+                           <div className="flex items-center gap-2 color-nonary text-xs">
+                            <CircleDollarSign size={16} />
+                            <span>price exclude toll fees</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {totalCost !== null && totalCost > 0 &&(
+                      <div className="flex flex-row gap-2 mt-3 pt-2 border-t line-quinary">
+                        <div className="flex flex-1 w-full items-center">
+                          <p className="text-sm font-medium color-tertiary flex items-center gap-2">
+                            <span className={`font-semibold color-senary ${route.isPrimary ? 'text-md' : 'text-sm'}`}>
+                                {selectedCurrencySymbol} {totalCost.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="flex flex-1 w-full">
+                         <button
+                          type="button"
+                          onClick={buttonAction}
+                          disabled={isButtonDisabledForThisCard}
+                          className={`w-full font-bold text-xs rounded-sm focus:outline-none focus:shadow-outline transition-colors py-2 
+                            ${
+                              route.isPrimary
+                                ? 'background-tertiary hover:bg-yellow-400 color-primary cursor-pointer'
+                                : 'background-quaternary color-doctary'
+                            } 
+                            disabled:cursor-not-allowed disabled:opacity-60`
+                          }
+                        >
+                          {buttonText}
+                        </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
-
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={pricePerKm}
-              onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setPricePerKm(e.target.value)}
-              placeholder="Harga per KM"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm outline-none focus:border-indigo-400"
-            />
-            <select
-              value={selectedCurrency}
-              onChange={(e) => setSelectedCurrency(e.target.value)}
-              className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm outline-none focus:border-indigo-400"
-            >
-              {currencies.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isButtonDisabled}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
-          >
-            {isRouteLoading ? 'Menghitung Rute...' : 'Dapatkan Rute Optimal'}
-          </button>
-        </form>
-
-        {error && !isRouteLoading && (
-            <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-center text-red-300">
-                {error}
-            </div>
-        )}
-
-        {routes.length > 0 && !isRouteLoading && (
-          <div className="mt-4 p-3 bg-gray-900/50 rounded-lg space-y-3">
-            <h3 className="text-md font-semibold text-indigo-300 flex items-center gap-2"><Route size={20}/> Hasil Perhitungan Rute</h3>
-            {routes.map((route: RouteInfo) => { 
-              const totalCost = calculateCost(route.distance);
-              const isSlowSpeed = route.averageSpeed < 30;
-
-              return (
-                <div key={route.id} onClick={() => !route.isPrimary && setActiveRoute(route.id)} className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'bg-gray-800 ring-2 ring-indigo-400' : 'border border-dashed border-gray-700 hover:bg-gray-800/50 cursor-pointer'}`}>
-                  <p className="font-bold text-white flex items-center gap-2">
-                    <Info size={16} className={route.isPrimary ? 'text-amber-400' : 'text-gray-400'} />
-                    {route.isPrimary ? 'Rute Pilihan' : 'Rute Alternatif'}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                      <p>Jarak: <span className="font-bold text-white">{route.distance.toFixed(2)} km</span></p>
-                      <p>Waktu: <span className="font-bold text-white">{route.duration.toFixed(0)} menit</span></p>
-                      <p>Kecepatan Rata-rata: <span className="font-bold text-white col-span-2">{route.averageSpeed.toFixed(0)} km/jam</span></p>
-                  </div>
-                  <p className={`text-xs mt-1 ${route.hasToll ? 'text-amber-500' : 'text-green-500'}`}>
-                    {transportMode === 'car'
-                      ? (route.hasToll ? 'Rute ini melewati jalan tol.' : 'Rute ini adalah alternatif bebas tol.')
-                      : 'Rute ini dirancang untuk motor (menghindari tol).'}
-                  </p>
-                  {isSlowSpeed && (
-                    <div className="mt-2 p-2 bg-yellow-900/50 border border-yellow-700 rounded-md text-yellow-300 text-xs flex items-center gap-2">
-                      <AlertTriangle size={16} />
-                      <span>Rute mungkin padat meskipun ini rute terbaik.</span>
-                    </div>
-                  )}
-                  {totalCost !== null && (
-                    <div className="mt-3 pt-3 border-t border-gray-700">
-                      <p className="text-sm font-medium text-green-400 flex items-center gap-2">
-                          <CircleDollarSign size={18} />
-                          Estimasi Biaya:
-                          <span className={`font-bold text-white ${route.isPrimary ? 'text-lg' : 'text-base'}`}>
-                              {selectedCurrencySymbol} {totalCost.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+        </div>
     </div>
   );
 }

@@ -1,12 +1,11 @@
-// src/components/maps/MapComponent.tsx
-
 'use client';
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Route, Timer } from 'lucide-react';
 import L from 'leaflet';
-import { useMemo } from 'react';
-import { RouteInfo } from '@/libs/types';
+import { useEffect, useMemo, useRef } from 'react';
+import { RouteInfo, Driver, TransportMode, DriverDirection } from '@/libs/types';
 import MapController from './MapController';
 import MapEventsHandler from './MapEventsHandler';
 import RadarEffect from '../radar/RadarEffect';
@@ -27,6 +26,13 @@ const endMarkerIcon = new L.Icon({
   popupAnchor: [1, -34],
 });
 
+const driverIcon = (type: TransportMode, direction: DriverDirection) => new L.Icon({
+  iconUrl: `/${type}/${type}-${direction}.png`,
+  iconSize: [40, 45],
+  iconAnchor: [20, 22],
+  className: 'leaflet-marker-transition'
+});
+
 const DEFAULT_LOCATIONS: [number, number][] = [
     [-6.2088, 106.8456],
     [1.3521, 103.8198],
@@ -40,20 +46,35 @@ interface MapProps {
   userLocation: [number, number] | null;
   departurePoint: [number, number] | null;
   destinationPoint: [number, number] | null;
+  routes: RouteInfo[];
   onMapClick: (latlng: L.LatLng) => void;
   onMarkerDragEnd: (latlng: L.LatLng, type: 'departure' | 'destination') => void;
   onRouteSelect: (routeId: string) => void;
-  routes: RouteInfo[];
+  isOffering: boolean;
+  nearbyDrivers: Driver[];
+  acceptingDriver: Driver | null;
+  pickupRoute: RouteInfo | null;
+  isDriverEnroute: boolean;
+  driverPosition: [number, number] | null;
+  driverDirection: DriverDirection;
+  hasDriverArrived: boolean;
 }
 
 export default function MapComponent({
   userLocation,
   departurePoint,
   destinationPoint,
+  routes,
   onMapClick,
   onMarkerDragEnd,
   onRouteSelect,
-  routes,
+  isOffering,
+  nearbyDrivers,
+  acceptingDriver,
+  pickupRoute,
+  driverPosition,
+  driverDirection,
+  hasDriverArrived,
 }: MapProps) {
 
   const defaultLocation = useMemo(() => {
@@ -67,6 +88,21 @@ export default function MapComponent({
     () => [...routes].sort((a, b) => Number(a.isPrimary) - Number(b.isPrimary)),
     [routes]
   );
+  
+  const markerRef = useRef<L.Marker | null>(null);
+  
+  useEffect(() => {
+    if ((acceptingDriver || hasDriverArrived) && markerRef.current) {
+      setTimeout(() => {
+        if (markerRef.current) {
+          markerRef.current.openPopup();
+        }
+      }, 0);
+    }
+  }, [acceptingDriver, hasDriverArrived]);
+
+  const finalDriverPosition = driverPosition || acceptingDriver?.position;
+  const finalDriverIcon = acceptingDriver ? driverIcon(acceptingDriver.type, driverDirection) : undefined;
 
   return (
     <MapContainer center={mapCenter} zoom={initialZoom} scrollWheelZoom={true} className="h-full w-full">
@@ -74,9 +110,10 @@ export default function MapComponent({
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
       />
       
-      <MapController routes={routes} />
+      <MapController routes={pickupRoute ? [...routes, pickupRoute] : routes} />
       <MapEventsHandler onMapClick={onMapClick} destinationPoint={destinationPoint} />
-      {departurePoint && <RadarEffect center={departurePoint} />}
+      
+      {isOffering && departurePoint && <RadarEffect center={departurePoint} drivers={nearbyDrivers} />}
 
       {departurePoint && (
         <Marker
@@ -101,7 +138,7 @@ export default function MapComponent({
             dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination'),
           }}
         >
-          <Popup>Tujuan</Popup>
+          <Popup>Lokasi Tujuan</Popup>
         </Marker>
       )}
 
@@ -111,7 +148,7 @@ export default function MapComponent({
           positions={route.coordinates}
           pathOptions={{
             color: route.isPrimary ? '#FFBF00' : '#4B5563',
-            weight: route.isPrimary ? 5 : 8,
+            weight: route.isPrimary ? 8 : 5,
             opacity: route.isPrimary ? 0.9 : 0.8,
           }}
           eventHandlers={{
@@ -123,6 +160,42 @@ export default function MapComponent({
           }}
         />
       ))}
+
+      {pickupRoute && (
+        <Polyline
+          positions={pickupRoute.coordinates}
+          pathOptions={{ color: '#FFBF00', weight: 4, opacity: 0.9, dashArray: '5, 10' }}
+        />
+      )}
+      
+      {acceptingDriver && finalDriverPosition && finalDriverIcon && (
+        <Marker
+          ref={markerRef}
+          position={finalDriverPosition}
+          icon={finalDriverIcon}
+        >
+          <Popup className="driver-popup" offset={[0, -20]}>
+             <div className="flex flex-col justify-center items-center gap-1">
+              {hasDriverArrived ? (
+                  <span className="font-bold">Knock, Knock! im here</span>
+              ) : (
+                <>
+                  <span className="font-bold">Hei im intersted with your offering</span>
+                  <span className="font-bold">Im going to location soon!</span>
+                  {pickupRoute && (
+                    <div className='flex flex-row gap-2 mt-2 w-full items-center justify-center'>
+                      <Route size={16} className='color-tertiary' />
+                      <span className="font-bold text-xs color-senary">{pickupRoute.distance.toFixed(1)} KM</span>
+                      <Timer size={16} className='color-tertiary' />
+                      <span className="font-bold text-xs color-senary">{pickupRoute.duration.toFixed(0)} Minutes</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      )}
     </MapContainer>
   );
 }
