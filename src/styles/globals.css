@@ -120,3 +120,29 @@ body {
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
 }
+
+.driver-popup .leaflet-popup-content-wrapper {
+  background-color: var(--color-primary);
+  color: var(--color-senary);
+  border-radius: 8px;
+  border: 1px solid var(--color-tertiary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.driver-popup .leaflet-popup-content {
+  margin: 12px;
+  line-height: 1.5;
+}
+
+.driver-popup .leaflet-popup-tip {
+  background-color: var(--color-primary);
+}
+
+.driver-popup .leaflet-popup-close-button {
+  color: var(--color-senary) !important;
+  transition: color 0.2s ease-in-out;
+}
+
+.driver-popup .leaflet-popup-close-button:hover {
+  color: var(--color-tertiary) !important;
+}

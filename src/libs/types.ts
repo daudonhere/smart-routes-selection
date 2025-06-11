@@ -1,5 +1,11 @@
 export type TransportMode = 'motorbike' | 'car' | 'truck';
 
+export interface Driver {
+  id: string;
+  type: TransportMode;
+  position: [number, number];
+}
+
 export interface ORSStep {
   toll?: boolean | string | Record<string, unknown>;
 }

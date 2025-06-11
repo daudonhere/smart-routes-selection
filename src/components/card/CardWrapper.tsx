@@ -29,6 +29,10 @@ export default function CardWrapper() {
   const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
   const setPoint = useRouteStore((state) => state.setPoint);
+  const isOffering = useRouteStore((state) => state.isOffering);
+  const startOfferSimulation = useRouteStore((state) => state.startOfferSimulation);
+  const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
+  const cancelOffer = useRouteStore((state) => state.cancelOffer);
   const [pricePerKm, setPricePerKm] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0].code);
   const selectedCurrencySymbol = currencies.find(c => c.code === selectedCurrency)?.symbol || 'Rp';
@@ -141,11 +145,39 @@ export default function CardWrapper() {
               {routes.map((route: RouteInfo) => { 
                 const totalCost = calculateCost(route.distance);
                 const isSlowSpeed = route.averageSpeed < 30;
-                // REVISI: Buat kondisi untuk menampilkan peringatan biaya tol
                 const showTollFeeWarning = (transportMode === 'car' || transportMode === 'truck') && route.hasToll;
-  
+                const lowerSpeed = route.averageSpeed;
+                const upperSpeed = lowerSpeed + 10;
+                const hasDriver = !!acceptingDriver;
+                const isCardClickable = !route.isPrimary && !hasDriver;
+                let buttonText = 'Offer';
+                let buttonAction = () => {};
+                let isButtonDisabledForThisCard = true;
+
+                if (route.isPrimary) {
+                  if (hasDriver) {
+                    buttonText = 'Cancel';
+                    buttonAction = cancelOffer;
+                    isButtonDisabledForThisCard = false;
+                  } else if (isOffering) {
+                    buttonText = 'Mencari Driver...';
+                    isButtonDisabledForThisCard = true;
+                  } else {
+                    buttonText = 'Offer';
+                    buttonAction = startOfferSimulation;
+                    isButtonDisabledForThisCard = false;
+                  }
+                } else {
+                  buttonText = 'Offer';
+                  isButtonDisabledForThisCard = true;
+                }
+
                 return (
-                  <div key={route.id} onClick={() => !route.isPrimary && setActiveRoute(route.id)} className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-2 line-tertiary shadow-lg shadow-tertiary/20' : 'background-primary border-2 line-quinary hover:line-doctary cursor-pointer'}`}>
+                  <div 
+                    key={route.id} 
+                    onClick={isCardClickable ? () => setActiveRoute(route.id) : undefined} 
+                    className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-2 line-tertiary shadow-lg shadow-tertiary/20' : 'background-primary border-2 line-quinary'} ${isCardClickable ? 'hover:line-doctary cursor-pointer' : ''} ${!isCardClickable && !route.isPrimary ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
                     <p className="font-bold color-tertiary flex items-center gap-2">
                       <Info size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
                       {route.isPrimary ? 'Preferred Route' : 'Alternative Route'}
@@ -158,7 +190,9 @@ export default function CardWrapper() {
                         </div>
                         <div className='flex flex-row gap-1 w-full items-center'>
                           <Gauge size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
-                          <span className="font-bold text-xs color-senary">{route.averageSpeed.toFixed(0)} Kmh</span>
+                          <span className="font-bold text-xs color-senary">
+                            {`${lowerSpeed.toFixed(0)} - ${upperSpeed.toFixed(0)} Kmh`}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-row gap-6">
@@ -181,7 +215,7 @@ export default function CardWrapper() {
                         {isSlowSpeed && (
                           <div className="flex items-center gap-2 color-nonary text-xs">
                             <AlertTriangle size={16} />
-                            <span>Route may be congested</span>
+                            <span>Route maybe congested</span>
                           </div>
                         )}
                         {showTollFeeWarning && (
@@ -197,7 +231,7 @@ export default function CardWrapper() {
                       <div className="flex flex-row gap-2 mt-3 pt-2 border-t line-quinary">
                         <div className="flex flex-1 w-full items-center">
                           <p className="text-sm font-medium color-tertiary flex items-center gap-2">
-                            <span className={`font-bold color-senary ${route.isPrimary ? 'text-lg' : 'text-base'}`}>
+                            <span className={`font-semibold color-senary ${route.isPrimary ? 'text-md' : 'text-sm'}`}>
                                 {selectedCurrencySymbol} {totalCost.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                             </span>
                           </p>
@@ -205,17 +239,18 @@ export default function CardWrapper() {
                         <div className="flex flex-1 w-full">
                          <button
                           type="button"
-                          disabled={!route.isPrimary}
+                          onClick={buttonAction}
+                          disabled={isButtonDisabledForThisCard}
                           className={`w-full font-bold text-xs rounded-sm focus:outline-none focus:shadow-outline transition-colors py-2 
                             ${
                               route.isPrimary
                                 ? 'background-tertiary hover:bg-yellow-400 color-primary cursor-pointer'
                                 : 'background-quaternary color-doctary'
                             } 
-                            disabled:cursor-not-allowed`
+                            disabled:cursor-not-allowed disabled:opacity-60`
                           }
                         >
-                          Offer
+                          {buttonText}
                         </button>
                         </div>
                       </div>

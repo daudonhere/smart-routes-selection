@@ -3,46 +3,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { Circle } from 'react-leaflet';
 import VehicleMarker from './VehicleMarker';
+import { Driver, TransportMode } from '@/libs/types';
 
 interface RadarEffectProps {
     center: [number, number];
+    drivers: Driver[];
 }
 
-type VehicleType = 'car' | 'bike' | 'truck';
-
-export default function RadarEffect({ center }: RadarEffectProps) {
+export default function RadarEffect({ center, drivers }: RadarEffectProps) {
     const [radius, setRadius] = useState(500);
-    const [vehiclePositions, setVehiclePositions] = useState<({ type: VehicleType, position: [number, number] })[]>([]);
-    
     const frameRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
-
     const minRadius = 500;
     const maxRadius = 3000;
     const duration = 3000;
-
-    useEffect(() => {
-        const generateRandomPositions = () => {
-            const positions = [];
-            const [centerLat, centerLon] = center;
-            const vehicleTypes: VehicleType[] = ['car', 'car', 'car', 'bike', 'bike', 'bike', 'truck', 'truck', 'truck'];
-
-            for (let i = 0; i < vehicleTypes.length; i++) {
-                const randomDistance = Math.sqrt(Math.random()) * maxRadius;
-                const randomAngle = Math.random() * 2 * Math.PI;
-                const latOffset = (randomDistance * Math.cos(randomAngle)) / 111111;
-                const lonOffset = (randomDistance * Math.sin(randomAngle)) / (111111 * Math.cos(centerLat * Math.PI / 180));
-
-                positions.push({
-                    type: vehicleTypes[i],
-                    position: [centerLat + latOffset, centerLon + lonOffset]
-                } as { type: VehicleType; position: [number, number] });
-            }
-            setVehiclePositions(positions);
-        };
-        
-        generateRandomPositions();
-    }, [center, maxRadius]);
 
     useEffect(() => {
         const animate = (timestamp: number) => {
@@ -57,16 +31,19 @@ export default function RadarEffect({ center }: RadarEffectProps) {
         frameRef.current = requestAnimationFrame(animate);
 
         return () => {
-            if (frameRef.current) cancelAnimationFrame(frameRef.current);
+            if (frameRef.current) {
+              cancelAnimationFrame(frameRef.current);
+            }
             startTimeRef.current = null;
         };
     }, []);
 
-    const getIconUrl = (type: VehicleType): string => {
+    const getIconUrl = (type: TransportMode): string => {
         switch (type) {
             case 'car': return '/car/car-front.png';
-            case 'bike': return '/bike/bike-front.png';
+            case 'motorbike': return '/motorbike/motorbike-front.png';
             case 'truck': return '/truck/truck-front.png';
+            default: return '/car/car-front.png';
         }
     }
     
@@ -82,13 +59,13 @@ export default function RadarEffect({ center }: RadarEffectProps) {
                     fillOpacity: 0.5 - (radius / (maxRadius * 2.2)),
                 }}
             />
-            {vehiclePositions.map((vehicle, index) => (
+            {drivers.map((driver) => (
                 <VehicleMarker
-                    key={index}
-                    position={vehicle.position}
+                    key={driver.id}
+                    position={driver.position}
                     center={center}
                     animatedRadius={radius}
-                    iconUrl={getIconUrl(vehicle.type)}
+                    iconUrl={getIconUrl(driver.type)}
                 />
             ))}
         </>

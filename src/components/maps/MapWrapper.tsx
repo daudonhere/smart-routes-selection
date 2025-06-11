@@ -1,11 +1,12 @@
 'use client';
+
 import dynamic from 'next/dynamic';
 import { useRouteStore } from '@/stores/routesStore';
 import { useEffect } from 'react';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="text-text-primary">Memuat Peta...</p></div>,
+  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Memuat Peta...</p></div>,
 });
 
 export default function MapWrapper() {
@@ -17,6 +18,10 @@ export default function MapWrapper() {
   const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
   const clearError = useRouteStore((state) => state.clearError);
+  const isOffering = useRouteStore((state) => state.isOffering);
+  const nearbyDrivers = useRouteStore((state) => state.nearbyDrivers);
+  const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
+  const pickupRoute = useRouteStore((state) => state.pickupRoute);
 
   useEffect(() => {
     if (error) {
@@ -32,7 +37,7 @@ export default function MapWrapper() {
 
   return (
     <div className="h-full w-full relative">
-      {error && (
+      {error && !isOffering && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white p-3 rounded-md z-[1001] shadow-lg max-w-md text-center text-sm">
           <p>{error}</p>
         </div>
@@ -45,6 +50,10 @@ export default function MapWrapper() {
         onMarkerDragEnd={updateLocationFromMap}
         onMapClick={(latlng) => updateLocationFromMap(latlng, 'destination')}
         onRouteSelect={setActiveRoute}
+        isOffering={isOffering}
+        nearbyDrivers={nearbyDrivers}
+        acceptingDriver={acceptingDriver}
+        pickupRoute={pickupRoute}
       />
     </div>
   );

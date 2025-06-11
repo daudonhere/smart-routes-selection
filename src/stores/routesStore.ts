@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import L from 'leaflet';
 import { fetchAddressName, resolveLocationToInfo } from '@/libs/geocoding';
 import { fetchOptimalRoutes } from '@/libs/routing';
-import { RouteInfo, TransportMode, ORSRoute, LocationInfo } from '@/libs/types';
+import { RouteInfo, TransportMode, ORSRoute, LocationInfo, Driver } from '@/libs/types';
 import polyline from '@mapbox/polyline';
 
 const MOTORBIKE_SPEED_ADJUSTMENT = 17;
@@ -20,9 +20,7 @@ const processRawRouteToInfo = (
   const distanceKm = summary.distance / 1000;
   const decodedCoordinates = polyline.decode(geometry) as [number, number][];
   const orsDurationMinutes = summary.duration / 60;
-
   const orsAverageSpeed = distanceKm > 0 ? distanceKm / (orsDurationMinutes / 60) : 0;
-
   let adjustedAverageSpeed = orsAverageSpeed;
 
   switch (transportMode) {
@@ -64,6 +62,11 @@ interface RouteState {
     isRouteLoading: boolean;
     isMapLoading: boolean;
     error: string | null;
+    isOffering: boolean;
+    nearbyDrivers: Driver[];
+    acceptingDriver: Driver | null;
+    pickupRoute: RouteInfo | null;
+    clearOffer: () => void;
     initializeLocation: () => void;
     setTransportMode: (mode: TransportMode) => void;
     setIncludeTolls: (include: boolean) => void;
@@ -74,6 +77,8 @@ interface RouteState {
     setActiveRoute: (routeId: string) => void;
     clearError: () => void;
     setPoint: (type: 'departure' | 'destination', locationInfo: LocationInfo) => void;
+    startOfferSimulation: () => void;
+    cancelOffer: () => void;
 }
 
 export const useRouteStore = create<RouteState>((set, get) => ({
@@ -88,11 +93,38 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     isRouteLoading: false,
     isMapLoading: true,
     error: null,
+    isOffering: false,
+    nearbyDrivers: [],
+    acceptingDriver: null,
+    pickupRoute: null,
+    
     clearError: () => set({ error: null }),
-    setTransportMode: (mode) => { set({ transportMode: mode, routes: [] }); get().clearError(); },
-    setIncludeTolls: (include) => { set({ includeTolls: include, routes: [] }); get().clearError(); },
-    setDepartureFromInput: (address) => set({ departureAddress: address, routes: [] }),
-    setDestinationFromInput: (address) => set({ destinationAddress: address, routes: [] }),
+
+    clearOffer: () => set({ isOffering: false, nearbyDrivers: [], acceptingDriver: null, pickupRoute: null }),
+    
+    cancelOffer: () => {
+    get().clearOffer();
+    },
+
+    setTransportMode: (mode) => { 
+      get().clearOffer(); 
+      set({ transportMode: mode, routes: [] }); 
+      get().clearError(); 
+    },
+    setIncludeTolls: (include) => { 
+      get().clearOffer(); 
+      set({ includeTolls: include, routes: [] }); 
+      get().clearError(); 
+    },
+    setDepartureFromInput: (address) => { 
+      get().clearOffer(); 
+      set({ departureAddress: address, routes: [] }); 
+    },
+    setDestinationFromInput: (address) => { 
+      get().clearOffer(); 
+      set({ destinationAddress: address, routes: [] }); 
+    },
+    
     initializeLocation: () => {
         set({ isMapLoading: true });
         const init = async (coords: [number, number]) => {
@@ -104,6 +136,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         navigator.geolocation.getCurrentPosition((position) => init([position.coords.latitude, position.coords.longitude]), handleGeoError, { timeout: 10000, enableHighAccuracy: true });
     },
     updateLocationFromMap: async (latlng, type) => {
+        get().clearOffer();
         const coords: [number, number] = [latlng.lat, latlng.lng];
         const stateUpdate = type === 'departure' ? { departurePoint: coords, departureAddress: 'Memperbarui alamat...' } : { destinationPoint: coords, destinationAddress: 'Memperbarui alamat...' };
         set({ ...stateUpdate, routes: [] });
@@ -113,6 +146,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         set(finalUpdate);
     },
     setPoint: (type, locationInfo) => {
+        get().clearOffer();
         if (type === 'departure') {
             set({
                 departureAddress: locationInfo.name,
@@ -128,6 +162,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         }
     },
     fetchRoutes: async () => {
+        get().clearOffer();
         const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
         if (!departureAddress || !destinationAddress) { set({ error: "Lokasi keberangkatan dan tujuan harus diisi." }); return; }
 
@@ -146,37 +181,18 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             if ((transportMode === 'car' || transportMode === 'truck') && includeTolls) {
                 const routesWithTollRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, false);
                 const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, true);
-
                 const tollCandidateRaw = routesWithTollRaw?.[0];
                 const nonTollCandidateRaw = routesWithoutTollRaw?.[0];
-
-                if (!tollCandidateRaw && !nonTollCandidateRaw) {
-                    throw new Error("Tidak dapat menemukan rute dari OpenRouteService.");
-                }
-
+                if (!tollCandidateRaw && !nonTollCandidateRaw) { throw new Error("Tidak dapat menemukan rute dari OpenRouteService."); }
                 let tollOption: RouteInfo | null = null;
                 let nonTollOption: RouteInfo | null = null;
-
                 if (tollCandidateRaw) {
-                    const isTrulyTollRoute = nonTollCandidateRaw 
-                        ? (tollCandidateRaw.summary.duration < nonTollCandidateRaw.summary.duration) 
-                        : false; 
-
-                    tollOption = {
-                        id: `route-toll-${Date.now()}`,
-                        ...processRawRouteToInfo(tollCandidateRaw, transportMode, isTrulyTollRoute),
-                        isPrimary: false,
-                    };
+                    const isTrulyTollRoute = nonTollCandidateRaw ? (tollCandidateRaw.summary.duration < nonTollCandidateRaw.summary.duration) : false; 
+                    tollOption = { id: `route-toll-${Date.now()}`, ...processRawRouteToInfo(tollCandidateRaw, transportMode, isTrulyTollRoute), isPrimary: false };
                 }
-
                 if (nonTollCandidateRaw) {
-                    nonTollOption = {
-                        id: `route-non-toll-${Date.now()}`,
-                        ...processRawRouteToInfo(nonTollCandidateRaw, transportMode, false),
-                        isPrimary: false,
-                    };
+                    nonTollOption = { id: `route-non-toll-${Date.now()}`, ...processRawRouteToInfo(nonTollCandidateRaw, transportMode, false), isPrimary: false };
                 }
-                
                 if (tollOption && nonTollOption) {
                     if (tollOption.duration <= nonTollOption.duration) {
                         tollOption.isPrimary = true;
@@ -192,20 +208,14 @@ export const useRouteStore = create<RouteState>((set, get) => ({
                     nonTollOption.isPrimary = true;
                     finalRoutes.push(nonTollOption);
                 }
-
             } else {
                 const avoidToll = transportMode === 'motorbike' || !includeTolls;
                 const fetchedRoutesRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, avoidToll);
-
                 fetchedRoutesRaw.forEach((rawRoute, index) => {
                     if (index < 2) {
                         const hasToll = false;
                         const routeData = processRawRouteToInfo(rawRoute, transportMode, hasToll);
-                        finalRoutes.push({
-                            ...routeData,
-                            id: `route-${index}-${Date.now()}`,
-                            isPrimary: index === 0,
-                        });
+                        finalRoutes.push({ ...routeData, id: `route-${index}-${Date.now()}`, isPrimary: index === 0 });
                     }
                 });
             }
@@ -213,7 +223,6 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             if (finalRoutes.length === 0) { throw new Error("Tidak ada rute yang dapat ditemukan antara dua lokasi ini."); }
 
             set({ routes: finalRoutes, isRouteLoading: false });
-
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tak terduga.";
             set({ error: errorMessage, isRouteLoading: false, routes: [] });
@@ -224,4 +233,58 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         const newRoutes = currentRoutes.map(route => ({...route, isPrimary: route.id === routeId, }));
         set({ routes: newRoutes });
     },
+    startOfferSimulation: () => {
+      const { departurePoint, transportMode } = get();
+      if (!departurePoint) return;
+
+      get().clearOffer();
+      set({ isOffering: true });
+
+      const generatedDrivers: Driver[] = [];
+      const vehicleCount = 7; 
+      for (let i = 0; i < vehicleCount; i++) {
+        const randomDistance = (Math.sqrt(Math.random()) * 2000) + 500;
+        const randomAngle = Math.random() * 2 * Math.PI;
+        const latOffset = (randomDistance * Math.cos(randomAngle)) / 111111;
+        const lonOffset = (randomDistance * Math.sin(randomAngle)) / (111111 * Math.cos(departurePoint[0] * Math.PI / 180));
+        generatedDrivers.push({
+            id: `driver-${i}-${Date.now()}`,
+            type: transportMode,
+            position: [departurePoint[0] + latOffset, departurePoint[1] + lonOffset]
+        });
+      }
+      set({ nearbyDrivers: generatedDrivers });
+
+      const delay = Math.random() * 5000 + 5000;
+      setTimeout(async () => {
+        const drivers = get().nearbyDrivers;
+        const departure = get().departurePoint;
+        if (drivers.length === 0 || !departure) {
+            set({ isOffering: false });
+            return;
+        }
+
+        const chosenDriver = drivers[Math.floor(Math.random() * drivers.length)];
+        
+        try {
+          const driverLocationInfo: LocationInfo = { coords: chosenDriver.position, name: 'Lokasi Driver' };
+          const departureLocationInfo: LocationInfo = { coords: departure, name: 'Lokasi Penjemputan' };
+          const pickupRouteRaw = await fetchOptimalRoutes(driverLocationInfo, departureLocationInfo, chosenDriver.type, true);
+
+          if (pickupRouteRaw.length > 0) {
+            const routeData = processRawRouteToInfo(pickupRouteRaw[0], chosenDriver.type, false);
+            const finalPickupRoute: RouteInfo = { ...routeData, id: `pickup-${chosenDriver.id}`, isPrimary: true };
+            set({ acceptingDriver: chosenDriver, pickupRoute: finalPickupRoute });
+          }
+        } catch (e) {
+          if (e instanceof Error) {
+            console.error("Gagal menghitung rute penjemputan:", e.message);
+          } else {
+            console.error("Gagal menghitung rute penjemputan:", e);
+          }
+        }
+        
+        set({ isOffering: false });
+      }, delay);
+    }
 }));
