@@ -8,12 +8,10 @@ interface MapEventsProps {
     destinationPoint: [number, number] | null;
 }
 
-export default function MapEventsHandler({ onMapClick, destinationPoint }: MapEventsProps) {
+export default function MapEventsHandler({ onMapClick }: MapEventsProps) {
     useMapEvents({
       click(e) {
-        if (!destinationPoint) {
-            onMapClick(e.latlng);
-        }
+        onMapClick(e.latlng);
       },
     });
   
