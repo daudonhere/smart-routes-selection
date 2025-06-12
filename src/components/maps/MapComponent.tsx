@@ -2,9 +2,9 @@
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Route, Timer } from 'lucide-react';
 import L from 'leaflet';
 import { useEffect, useMemo, useRef } from 'react';
+import { Timer, Route } from 'lucide-react';
 import { RouteInfo, Driver, TransportMode, DriverDirection } from '@/libs/types';
 import MapController from './MapController';
 import MapEventsHandler from './MapEventsHandler';
@@ -110,7 +110,12 @@ export default function MapComponent({
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
       />
       
-      <MapController routes={pickupRoute ? [...routes, pickupRoute] : routes} />
+      <MapController 
+        routes={pickupRoute ? [...routes, pickupRoute] : routes}
+        departurePoint={departurePoint}
+        destinationPoint={destinationPoint}
+      />
+      
       <MapEventsHandler onMapClick={onMapClick} destinationPoint={destinationPoint} />
       
       {isOffering && departurePoint && <RadarEffect center={departurePoint} drivers={nearbyDrivers} />}
@@ -175,7 +180,7 @@ export default function MapComponent({
           icon={finalDriverIcon}
         >
           <Popup className="driver-popup" offset={[0, -20]}>
-            <div className="flex flex-col justify-center items-center gap-1">
+            <div className="text-center">
               {hasDriverArrived ? (
                   <span className="font-bold">Knock, Knock! Im Here</span>
               ) : (

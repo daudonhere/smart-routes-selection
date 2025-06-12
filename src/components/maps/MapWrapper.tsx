@@ -7,7 +7,7 @@ import L from 'leaflet';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Fetching Maps...</p></div>,
+  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Memuat Peta...</p></div>,
 });
 
 export default function MapWrapper() {
@@ -39,6 +39,15 @@ export default function MapWrapper() {
     }
   }, [error, clearError]);
 
+  const handleMapClick = (latlng: L.LatLng) => {
+    if (!departurePoint) {
+      updateLocationFromMap(latlng, 'departure');
+    } 
+    else {
+      updateLocationFromMap(latlng, 'destination');
+    }
+  };
+
   return (
     <div className="h-full w-full relative">
       {error && !isOffering && (
@@ -52,7 +61,7 @@ export default function MapWrapper() {
         destinationPoint={destinationPoint}
         routes={routes}
         onMarkerDragEnd={updateLocationFromMap}
-        onMapClick={(latlng: L.LatLng) => updateLocationFromMap(latlng, 'destination')}
+        onMapClick={handleMapClick}
         onRouteSelect={setActiveRoute}
         isOffering={isOffering}
         nearbyDrivers={nearbyDrivers}
