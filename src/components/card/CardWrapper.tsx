@@ -49,7 +49,7 @@ export default function CardWrapper() {
             </div>
         )}
         {routes.length > 0 && !isRouteLoading && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
             {routes.map((route) => (
               <RouteResultCard 
                 key={route.id}

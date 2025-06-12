@@ -37,7 +37,7 @@ export const createRouteSlice: StateCreator<AppState, [], [], RouteSlice> = (set
     get().cancelOffer();
     const { departureAddress, destinationAddress, transportMode, includeTolls, userLocation } = get();
     if (!departureAddress || !destinationAddress) {
-      set({ error: "Lokasi keberangkatan dan tujuan harus diisi." });
+      set({ error: "Departure and destination must be filled." });
       return;
     }
 
@@ -46,7 +46,7 @@ export const createRouteSlice: StateCreator<AppState, [], [], RouteSlice> = (set
     try {
         const startInfo = await resolveLocationToInfo(departureAddress, userLocation);
         const endInfo = await resolveLocationToInfo(destinationAddress, userLocation);
-        if (!startInfo || !endInfo) throw new Error("One or both locations could not be found");
+        if (!startInfo || !endInfo) throw new Error("One or both locations could not be found.");
         set({ departurePoint: startInfo.coords, departureAddress: startInfo.name, destinationPoint: endInfo.coords, destinationAddress: endInfo.name });
 
         const finalRoutes: RouteInfo[] = [];
@@ -55,9 +55,11 @@ export const createRouteSlice: StateCreator<AppState, [], [], RouteSlice> = (set
             const routesWithoutTollRaw = await fetchOptimalRoutes(startInfo, endInfo, transportMode, true);
             const tollCandidateRaw = routesWithTollRaw?.[0];
             const nonTollCandidateRaw = routesWithoutTollRaw?.[0];
-            if (!tollCandidateRaw && !nonTollCandidateRaw) throw new Error("Unable to find route from ORS");
+            if (!tollCandidateRaw && !nonTollCandidateRaw) throw new Error("Could not find a route from the routing service.");
+            
             let tollOption: RouteInfo | null = null;
             let nonTollOption: RouteInfo | null = null;
+            
             if (tollCandidateRaw) {
                 const isTrulyTollRoute = nonTollCandidateRaw ? (tollCandidateRaw.summary.duration < nonTollCandidateRaw.summary.duration) : false; 
                 tollOption = { id: `route-toll-${Date.now()}`, ...processRawRouteToInfo(tollCandidateRaw, transportMode, isTrulyTollRoute), isPrimary: false };
@@ -65,6 +67,7 @@ export const createRouteSlice: StateCreator<AppState, [], [], RouteSlice> = (set
             if (nonTollCandidateRaw) {
                 nonTollOption = { id: `route-non-toll-${Date.now()}`, ...processRawRouteToInfo(nonTollCandidateRaw, transportMode, false), isPrimary: false };
             }
+
             if (tollOption && nonTollOption) {
                 if (Math.abs(tollOption.distance - nonTollOption.distance) < 0.01) {
                     tollOption.isPrimary = true;
@@ -96,11 +99,24 @@ export const createRouteSlice: StateCreator<AppState, [], [], RouteSlice> = (set
                 }
             });
         }
-        if (finalRoutes.length === 0) throw new Error("No route could be found between these two locations");
+        if (finalRoutes.length === 0) throw new Error("No route could be found between these locations.");
         set({ routes: finalRoutes, isRouteLoading: false });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-        set({ error: errorMessage, isRouteLoading: false, routes: [] });
+        let finalErrorMessage = "An unexpected error occurred while fetching routes.";
+
+        if (error instanceof Error) {
+            if (error.message.includes("distance must not be greater than")) {
+                finalErrorMessage = "Route distance exceeds the limit, maximum route limit is 150km";
+            } 
+            else if (error.message.includes("Could not find routable point")) {
+                finalErrorMessage = "A selected location is unreachable. Please choose a point closer to a road.";
+            }
+            else {
+                finalErrorMessage = error.message;
+            }
+        }
+        
+        set({ error: finalErrorMessage, isRouteLoading: false, routes: [] });
     }
   },
 });
