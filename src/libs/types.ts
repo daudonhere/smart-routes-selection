@@ -67,17 +67,22 @@ export interface RouteSlice {
 }
 
 export interface SimulationSlice {
+  isActionLocked: boolean;
   isOffering: boolean;
   nearbyDrivers: Driver[];
   acceptingDriver: Driver | null;
   pickupRoute: RouteInfo | null;
   isDriverEnroute: boolean;
+  isJourneyInProgress: boolean;
   driverPosition: [number, number] | null;
   driverDirection: DriverDirection;
   hasDriverArrived: boolean;
+  journeyMessage: string | null;
   startOfferSimulation: () => void;
   cancelOffer: () => void;
-  _startDriverAnimation: () => void;
+  resetApplication: () => void;
+  _startPickupAnimation: () => void;
+  _startMainJourneyAnimation: () => void;
 }
 
 export interface UiSlice {

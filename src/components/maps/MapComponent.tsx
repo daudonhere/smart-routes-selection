@@ -38,7 +38,7 @@ const DEFAULT_LOCATIONS: [number, number][] = [
     [1.3521, 103.8198],
     [40.7128, -74.0060],
     [35.6762, 139.6503],
-    [39.9042, 116.4074], 
+    [39.9042, 116.4074],
     [28.6139, 77.2090],
 ];
 
@@ -50,14 +50,14 @@ interface MapProps {
   onMapClick: (latlng: L.LatLng) => void;
   onMarkerDragEnd: (latlng: L.LatLng, type: 'departure' | 'destination') => void;
   onRouteSelect: (routeId: string) => void;
+  isActionLocked: boolean;
   isOffering: boolean;
   nearbyDrivers: Driver[];
   acceptingDriver: Driver | null;
   pickupRoute: RouteInfo | null;
-  isDriverEnroute: boolean;
   driverPosition: [number, number] | null;
   driverDirection: DriverDirection;
-  hasDriverArrived: boolean;
+  journeyMessage: string | null;
 }
 
 export default function MapComponent({
@@ -68,21 +68,21 @@ export default function MapComponent({
   onMapClick,
   onMarkerDragEnd,
   onRouteSelect,
+  isActionLocked,
   isOffering,
   nearbyDrivers,
   acceptingDriver,
   pickupRoute,
   driverPosition,
   driverDirection,
-  hasDriverArrived,
+  journeyMessage,
 }: MapProps) {
-
   const defaultLocation = useMemo(() => {
     return DEFAULT_LOCATIONS[Math.floor(Math.random() * DEFAULT_LOCATIONS.length)];
   }, []);
 
-  const mapCenter = userLocation || defaultLocation; 
-  const initialZoom = userLocation ? 13 : 10; 
+  const mapCenter = userLocation || defaultLocation;
+  const initialZoom = userLocation ? 13 : 10;
 
   const sortedRoutes = useMemo(
     () => [...routes].sort((a, b) => Number(a.isPrimary) - Number(b.isPrimary)),
@@ -90,33 +90,32 @@ export default function MapComponent({
   );
   
   const markerRef = useRef<L.Marker | null>(null);
-  
+
   useEffect(() => {
-    if ((acceptingDriver || hasDriverArrived) && markerRef.current) {
-      setTimeout(() => {
-        if (markerRef.current) {
-          markerRef.current.openPopup();
-        }
-      }, 0);
+    if (acceptingDriver && markerRef.current) {
+      const openPopupTimeout = setTimeout(() => {
+        markerRef.current?.openPopup();
+      }, 500);
+      return () => clearTimeout(openPopupTimeout);
     }
-  }, [acceptingDriver, hasDriverArrived]);
+  }, [acceptingDriver, journeyMessage]);
 
   const finalDriverPosition = driverPosition || acceptingDriver?.position;
   const finalDriverIcon = acceptingDriver ? driverIcon(acceptingDriver.type, driverDirection) : undefined;
+  
+  const isPickupPhase = acceptingDriver && !journeyMessage;
 
   return (
     <MapContainer center={mapCenter} zoom={initialZoom} scrollWheelZoom={true} className="h-full w-full">
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
-      />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
       
-      <MapController 
+      <MapController
         routes={pickupRoute ? [...routes, pickupRoute] : routes}
         departurePoint={departurePoint}
         destinationPoint={destinationPoint}
       />
       
-      <MapEventsHandler onMapClick={onMapClick} destinationPoint={destinationPoint} />
+      <MapEventsHandler onMapClick={onMapClick} destinationPoint={destinationPoint} isDisabled={isActionLocked} />
       
       {isOffering && departurePoint && <RadarEffect center={departurePoint} drivers={nearbyDrivers} />}
 
@@ -124,7 +123,7 @@ export default function MapComponent({
         <Marker
           position={departurePoint}
           icon={startMarkerIcon}
-          draggable={true}
+          draggable={!isActionLocked} 
           eventHandlers={{
             dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'departure'),
           }}
@@ -138,7 +137,7 @@ export default function MapComponent({
         <Marker
           position={destinationPoint}
           icon={endMarkerIcon}
-          draggable={true}
+          draggable={!isActionLocked}
           eventHandlers={{
             dragend: (e) => onMarkerDragEnd(e.target.getLatLng(), 'destination'),
           }}
@@ -158,7 +157,7 @@ export default function MapComponent({
           }}
           eventHandlers={{
             click: () => {
-              if (!route.isPrimary) {
+              if (!route.isPrimary && !isActionLocked) {
                 onRouteSelect(route.id);
               }
             },
@@ -174,20 +173,16 @@ export default function MapComponent({
       )}
       
       {acceptingDriver && finalDriverPosition && finalDriverIcon && (
-        <Marker
-          ref={markerRef}
-          position={finalDriverPosition}
-          icon={finalDriverIcon}
-        >
+        <Marker ref={markerRef} position={finalDriverPosition} icon={finalDriverIcon}>
           <Popup className="driver-popup" offset={[0, -20]}>
             <div className="text-center">
-              {hasDriverArrived ? (
-                  <span className="font-bold">Knock, Knock! Im Here</span>
+              {journeyMessage ? (
+                  <span className="font-bold">{journeyMessage}</span>
               ) : (
                 <>
-                  <span className="font-bold">Hei im intersted with your offer</span>
+                  <span className="font-bold">Hei im intersted with your offer, </span>
                   <span className="font-bold">Im going to location soon!</span>
-                  {pickupRoute && (
+                  {isPickupPhase && pickupRoute && (
                     <div className='flex flex-row gap-2 mt-2 w-full items-center justify-center'>
                       <Route size={16} className='color-tertiary' />
                       <span className="font-bold text-xs color-senary">{pickupRoute.distance.toFixed(1)} Km</span>

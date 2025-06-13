@@ -19,14 +19,15 @@ export default function MapWrapper() {
   const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
   const clearError = useRouteStore((state) => state.clearError);
+  const isActionLocked = useRouteStore((state) => state.isActionLocked);
   const isOffering = useRouteStore((state) => state.isOffering);
   const nearbyDrivers = useRouteStore((state) => state.nearbyDrivers);
   const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
   const pickupRoute = useRouteStore((state) => state.pickupRoute);
-  const isDriverEnroute = useRouteStore((state) => state.isDriverEnroute);
   const driverPosition = useRouteStore((state) => state.driverPosition);
   const driverDirection = useRouteStore((state) => state.driverDirection);
-  const hasDriverArrived = useRouteStore((state) => state.hasDriverArrived);
+  const journeyMessage = useRouteStore((state) => state.journeyMessage);
+
 
   useEffect(() => {
     if (error) {
@@ -42,8 +43,7 @@ export default function MapWrapper() {
   const handleMapClick = (latlng: L.LatLng) => {
     if (!departurePoint) {
       updateLocationFromMap(latlng, 'departure');
-    } 
-    else {
+    } else {
       updateLocationFromMap(latlng, 'destination');
     }
   };
@@ -63,14 +63,14 @@ export default function MapWrapper() {
         onMarkerDragEnd={updateLocationFromMap}
         onMapClick={handleMapClick}
         onRouteSelect={setActiveRoute}
+        isActionLocked={isActionLocked}
         isOffering={isOffering}
         nearbyDrivers={nearbyDrivers}
         acceptingDriver={acceptingDriver}
         pickupRoute={pickupRoute}
-        isDriverEnroute={isDriverEnroute}
         driverPosition={driverPosition}
         driverDirection={driverDirection}
-        hasDriverArrived={hasDriverArrived}
+        journeyMessage={journeyMessage}
       />
     </div>
   );

@@ -19,25 +19,34 @@ export default function RouteResultCard({ route, totalCost, currencySymbol }: Ro
   const cancelOffer = useRouteStore((state) => state.cancelOffer);
   const isDriverEnroute = useRouteStore((state) => state.isDriverEnroute);
   const hasDriverArrived = useRouteStore((state) => state.hasDriverArrived);
+  const isJourneyInProgress = useRouteStore((state) => state.isJourneyInProgress);
+  const journeyMessage = useRouteStore((state) => state.journeyMessage);
+  const isActionLocked = useRouteStore((state) => state.isActionLocked);
   const isSlowSpeed = route.averageSpeed < 30;
   const showTollFeeWarning = (transportMode === 'car' || transportMode === 'truck') && route.hasToll;
   const lowerSpeed = route.averageSpeed;
   const upperSpeed = lowerSpeed + 10;
   const hasDriver = !!acceptingDriver;
-  const isCardClickable = !route.isPrimary && !hasDriver;
+  const isCardClickable = !route.isPrimary && !isActionLocked;
 
   let buttonText = 'Make An Offer';
   let buttonAction = () => {};
   let isButtonDisabledForThisCard = true;
 
   if (route.isPrimary) {
-    if (hasDriverArrived) {
+    if (journeyMessage === 'Im finish, thank you') {
+      buttonText = 'Finished';
+      isButtonDisabledForThisCard = true;
+    } else if (isJourneyInProgress) {
+      buttonText = 'On The Way';
+      isButtonDisabledForThisCard = true;
+    } else if (hasDriverArrived) {
       buttonText = 'Driver Arrived';
       isButtonDisabledForThisCard = true;
     } else if (isDriverEnroute) {
       buttonText = 'On The Way';
       isButtonDisabledForThisCard = true;
-    } else if (hasDriver) {
+    } else if (hasDriver) { 
       buttonText = 'Cancel';
       buttonAction = cancelOffer;
       isButtonDisabledForThisCard = false;
@@ -53,11 +62,15 @@ export default function RouteResultCard({ route, totalCost, currencySymbol }: Ro
     buttonText = 'Make An Offer';
     isButtonDisabledForThisCard = true;
   }
-
+  
+  if (isActionLocked && buttonAction !== cancelOffer) {
+    isButtonDisabledForThisCard = true;
+  }
+  
   return (
     <div 
       onClick={isCardClickable ? () => setActiveRoute(route.id) : undefined} 
-      className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-2 line-tertiary shadow-lg shadow-tertiary/20' : 'background-primary border-2 line-quinary'} ${isCardClickable ? 'hover:line-doctary cursor-pointer' : ''} ${!isCardClickable && !route.isPrimary ? 'opacity-60 cursor-not-allowed' : ''}`}
+      className={`p-3 rounded-lg transition-all ${route.isPrimary ? 'background-primary border-2 line-tertiary shadow-lg shadow-tertiary/20' : 'background-primary border-2 line-quinary'} ${isCardClickable ? 'hover:line-doctary cursor-pointer' : ''} ${(!isCardClickable && !route.isPrimary) || isActionLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
     >
       <p className="font-bold color-tertiary flex items-center gap-2">
         <Info size={16} className={route.isPrimary ? 'color-tertiary' : 'color-quinary'} />
