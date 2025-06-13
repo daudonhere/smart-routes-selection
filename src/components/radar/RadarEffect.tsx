@@ -54,7 +54,7 @@ export default function RadarEffect({ center, drivers }: RadarEffectProps) {
                 radius={radius}
                 pathOptions={{
                     color: '#f39c12',
-                    fillColor: '#f1c40f',
+                    fillColor: '#ffef86',
                     weight: 0.2,
                     fillOpacity: 0.5 - (radius / (maxRadius * 2.2)),
                 }}

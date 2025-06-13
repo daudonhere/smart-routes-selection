@@ -16,7 +16,6 @@ const currencies = [
 
 export default function CardWrapper() {
   const routes = useRouteStore((state) => state.routes);
-  const error = useRouteStore((state) => state.error);
   const isRouteLoading = useRouteStore((state) => state.isRouteLoading);
   const [pricePerKm, setPricePerKm] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0].code);
@@ -43,11 +42,6 @@ export default function CardWrapper() {
         />
       </div>
       <div className="flex flex-1 flex-col py-2 w-full overflow-y-auto">
-        {error && !isRouteLoading && (
-            <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-center text-red-300">
-                {error}
-            </div>
-        )}
         {routes.length > 0 && !isRouteLoading && (
           <div className="flex flex-col gap-2">
             {routes.map((route) => (

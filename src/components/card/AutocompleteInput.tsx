@@ -57,21 +57,21 @@ export default function AutocompleteInput({ value, onValueChange, onSelect, plac
                 type="text"
                 value={value}
                 onChange={(e) => onValueChange(e.target.value)}
-                onFocus={() => setIsFocused(true)} // REVISI: Set fokus saat input diklik
-                onBlur={handleBlur}                 // REVISI: Handle saat fokus keluar
+                onFocus={() => setIsFocused(true)}
+                onBlur={handleBlur}
                 placeholder={placeholder}
                 autoComplete="off"
-                className="w-full py-1 px-2 background-quaternary color-senary border line-quinary rounded-md shadow-sm outline-none focus:border-yellow-300"
+                className="w-full py-1 px-2 text-sm font-semibold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-300"
             />
-            {isLoading && <Loader2 className="absolute top-2.5 right-3 h-5 w-5 color-quinary animate-spin" />}
+            {isLoading && <Loader2 className="absolute top-2 right-3 h-5 w-5 color-quinary animate-spin" />}
             
             {suggestions.length > 0 && isFocused && (
-                <ul className="absolute z-20 w-full mt-1 bg-neutral-900 border line-quinary rounded-md shadow-lg max-h-60 overflow-auto">
+                <ul className="absolute z-20 w-full mt-1 background-tertiary color-quinary border line-senary rounded-sm shadow-lg max-h-60 overflow-auto">
                     {suggestions.map((item, index) => (
                         <li
                             key={`${item.name}-${index}`}
                             onClick={() => handleSelect(item)}
-                            className="px-3 py-2 text-sm color-senary cursor-pointer hover:bg-yellow-400 hover:text-black"
+                            className="px-3 py-2 text-sm font-semibold color-quinary cursor-pointer hover:bg-yellow-300 hover:text-black"
                         >
                             {item.name}
                         </li>

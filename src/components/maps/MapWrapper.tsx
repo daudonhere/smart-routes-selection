@@ -7,7 +7,7 @@ import L from 'leaflet';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Memuat Peta...</p></div>,
+  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Loading...</p></div>,
 });
 
 export default function MapWrapper() {
@@ -19,19 +19,20 @@ export default function MapWrapper() {
   const setActiveRoute = useRouteStore((state) => state.setActiveRoute);
   const error = useRouteStore((state) => state.error);
   const clearError = useRouteStore((state) => state.clearError);
+  const isActionLocked = useRouteStore((state) => state.isActionLocked);
   const isOffering = useRouteStore((state) => state.isOffering);
   const nearbyDrivers = useRouteStore((state) => state.nearbyDrivers);
   const acceptingDriver = useRouteStore((state) => state.acceptingDriver);
   const pickupRoute = useRouteStore((state) => state.pickupRoute);
-  const isDriverEnroute = useRouteStore((state) => state.isDriverEnroute);
   const driverPosition = useRouteStore((state) => state.driverPosition);
   const driverDirection = useRouteStore((state) => state.driverDirection);
-  const hasDriverArrived = useRouteStore((state) => state.hasDriverArrived);
+  const journeyMessage = useRouteStore((state) => state.journeyMessage);
+
 
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
-        if (!error.includes("GPS tidak aktif")) {
+        if (!error.includes("GPS not function")) {
             clearError();
         }
       }, 5000);
@@ -42,8 +43,7 @@ export default function MapWrapper() {
   const handleMapClick = (latlng: L.LatLng) => {
     if (!departurePoint) {
       updateLocationFromMap(latlng, 'departure');
-    } 
-    else {
+    } else {
       updateLocationFromMap(latlng, 'destination');
     }
   };
@@ -51,7 +51,7 @@ export default function MapWrapper() {
   return (
     <div className="h-full w-full relative">
       {error && !isOffering && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white p-3 rounded-md z-[1001] shadow-lg max-w-md text-center text-sm">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 background-denary color-quinary p-2 rounded-md z-[1001] shadow-lg max-w-md text-center text-sm font-bold">
           <p>{error}</p>
         </div>
       )}
@@ -63,14 +63,14 @@ export default function MapWrapper() {
         onMarkerDragEnd={updateLocationFromMap}
         onMapClick={handleMapClick}
         onRouteSelect={setActiveRoute}
+        isActionLocked={isActionLocked}
         isOffering={isOffering}
         nearbyDrivers={nearbyDrivers}
         acceptingDriver={acceptingDriver}
         pickupRoute={pickupRoute}
-        isDriverEnroute={isDriverEnroute}
         driverPosition={driverPosition}
         driverDirection={driverDirection}
-        hasDriverArrived={hasDriverArrived}
+        journeyMessage={journeyMessage}
       />
     </div>
   );

@@ -6,14 +6,17 @@ import L from 'leaflet';
 interface MapEventsProps {
     onMapClick: (latlng: L.LatLng) => void;
     destinationPoint: [number, number] | null;
+    isDisabled: boolean;
 }
 
-export default function MapEventsHandler({ onMapClick }: MapEventsProps) {
+export default function MapEventsHandler({ onMapClick, isDisabled }: MapEventsProps) {
     useMapEvents({
       click(e) {
-        onMapClick(e.latlng);
+        if (!isDisabled) {
+          onMapClick(e.latlng);
+        }
       },
     });
   
     return null;
-};
+}
