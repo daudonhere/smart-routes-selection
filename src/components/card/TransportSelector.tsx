@@ -14,14 +14,14 @@ export default function TransportSelector() {
   }
 
   return (
-    <div className="flex flex-row gap-2 py-4 w-full justify-center">
+    <div className="flex flex-row gap-4 py-4 w-full justify-center">
       <div 
         onClick={() => handleSelection('motorbike')}
         className={`p-3 rounded-md flex justify-center items-center transition-all ${
           isActionLocked 
-            ? 'pointer-events-none' 
-            : 'cursor-pointer hover:bg-gray-600'
-        } ${transportMode === 'motorbike' && !isActionLocked ? 'background-tertiary color-primary' : 'background-quaternary color-senary'}`}
+            ? 'cursor-not-allowed' 
+            : 'cursor-pointer hover:bg-yellow-200'
+        } ${transportMode === 'motorbike' && !isActionLocked ? 'background-senary color-primary' : 'background-octonary color-tertiary'}`}
       >
         <Bike size={24} />
       </div>
@@ -29,9 +29,9 @@ export default function TransportSelector() {
         onClick={() => handleSelection('car')}
         className={`p-3 rounded-md flex justify-center items-center transition-all ${
           isActionLocked 
-            ? 'pointer-events-none' 
-            : 'cursor-pointer hover:bg-gray-600'
-        } ${transportMode === 'car' && !isActionLocked ? 'background-tertiary color-primary' : 'background-quaternary color-senary'}`}
+            ? 'cursor-not-allowed' 
+            : 'cursor-pointer hover:bg-yellow-200'
+        } ${transportMode === 'car' && !isActionLocked ? 'background-senary color-primary' : 'background-octonary color-tertiary'}`}
       >
         <Car size={24} />
       </div>
@@ -39,9 +39,9 @@ export default function TransportSelector() {
         onClick={() => handleSelection('truck')}
         className={`p-3 rounded-md flex justify-center items-center transition-all ${
           isActionLocked 
-            ? 'pointer-events-none' 
-            : 'cursor-pointer hover:bg-gray-600'
-        } ${transportMode === 'truck' && !isActionLocked ? 'background-tertiary color-primary' : 'background-quaternary color-senary'}`}
+            ? 'cursor-not-allowed' 
+            : 'cursor-pointer hover:bg-yellow-200'
+        } ${transportMode === 'truck' && !isActionLocked ? 'background-senary color-primary' : 'background-octonary color-tertiary'}`}
       >
         <Truck size={24} />
       </div>

@@ -26,10 +26,10 @@ export default function Home() {
   return (
     <main className="flex h-screen w-screen overflow-hidden background-primary">
      <div className="relative flex flex-1 lg:flex-row sm:flex-col">
-        <div className="absolute left-0 w-[20%] h-full p-2 background-secondary border-r line-quinary rounded-r-xl shadow-[10px_0px_22px_rgba(180,180,180,0.2)] z-20">
+        <div className="absolute left-0 w-[25%] h-full py-2 px-6 background-secondary border-r line-tertiary rounded-r-xl shadow-[10px_0px_22px_rgba(180,180,180,0.2)] z-20">
             <CardWrapper/>
         </div>
-        <div className="absolute right-0 w-[80%] h-full background-secondary z-10">
+        <div className="absolute right-0 w-[75%] h-full background-secondary z-10">
           <MapWrapper/>
         </div>
      </div>

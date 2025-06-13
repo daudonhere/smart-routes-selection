@@ -151,9 +151,9 @@ export default function MapComponent({
           key={route.id}
           positions={route.coordinates}
           pathOptions={{
-            color: route.isPrimary ? '#FFBF00' : '#4B5563',
+            color: route.isPrimary ? '#ffdd00' : '#797979',
             weight: route.isPrimary ? 8 : 5,
-            opacity: route.isPrimary ? 0.9 : 0.8,
+            opacity: route.isPrimary ? 1 : 0.8,
           }}
           eventHandlers={{
             click: () => {
@@ -168,7 +168,7 @@ export default function MapComponent({
       {pickupRoute && (
         <Polyline
           positions={pickupRoute.coordinates}
-          pathOptions={{ color: '#FFBF00', weight: 4, opacity: 0.9, dashArray: '5, 10' }}
+          pathOptions={{ color: '#797979', weight: 4, opacity: 0.9, }}
         />
       )}
       
@@ -181,13 +181,13 @@ export default function MapComponent({
               ) : (
                 <>
                   <span className="font-bold">Hei im intersted with your offer, </span>
-                  <span className="font-bold">Im going to location soon!</span>
+                  <span className="font-bold">Im going to your location soon!</span>
                   {isPickupPhase && pickupRoute && (
                     <div className='flex flex-row gap-2 mt-2 w-full items-center justify-center'>
-                      <Route size={16} className='color-tertiary' />
-                      <span className="font-bold text-xs color-senary">{pickupRoute.distance.toFixed(1)} Km</span>
-                      <Timer size={16} className='color-tertiary' />
-                      <span className="font-bold text-xs color-senary">{pickupRoute.duration.toFixed(0)} Minutes</span>
+                      <Route size={16} className='color-senary' />
+                      <span className="font-bold text-xs color-quinary">{pickupRoute.distance.toFixed(1)} Km</span>
+                      <Timer size={16} className='color-senary' />
+                      <span className="font-bold text-xs color-quinary">{pickupRoute.duration.toFixed(0)} Minutes</span>
                     </div>
                   )}
                 </>

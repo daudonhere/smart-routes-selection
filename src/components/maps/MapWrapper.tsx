@@ -7,7 +7,7 @@ import L from 'leaflet';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
-  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Memuat Peta...</p></div>,
+  loading: () => <div className="flex justify-center items-center h-full w-full background-secondary"><p className="color-senary">Loading...</p></div>,
 });
 
 export default function MapWrapper() {
@@ -32,7 +32,7 @@ export default function MapWrapper() {
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
-        if (!error.includes("GPS tidak aktif")) {
+        if (!error.includes("GPS not function")) {
             clearError();
         }
       }, 5000);
@@ -51,7 +51,7 @@ export default function MapWrapper() {
   return (
     <div className="h-full w-full relative">
       {error && !isOffering && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white p-3 rounded-md z-[1001] shadow-lg max-w-md text-center text-sm">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 background-denary color-quinary p-2 rounded-md z-[1001] shadow-lg max-w-md text-center text-sm font-bold">
           <p>{error}</p>
         </div>
       )}

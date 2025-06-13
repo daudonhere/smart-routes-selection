@@ -9,18 +9,18 @@
 
 :root {
   --color-primary: #000000;
-  --color-secondary: #202020;
-  --color-tertiary: #f7eb06;
-  --color-quaternary: #37374e;
-  --color-quinary: #5c5c5c;
-  --color-senary: #f3f3f3;
-  --color-septenary: #0fd105;
-  --color-octonary: #ff1a1a;
-  --color-nonary: #ffaa00;
-  --color-denary: #ffffff;
-  --color-undecary: #000000;
-  --color-doctary: #717171;
-  --color-undocary: #00ffe1;
+  --color-secondary: #1c1c1c;
+  --color-tertiary: #343434;
+  --color-quaternary: #797979;
+  --color-quinary: #ffffff;
+  --color-senary: #ffdd00;
+  --color-septenary: #ffef86;
+  --color-octonary: #c3c000;
+  --color-nonary: #e3e290;
+  --color-denary: #ee0000;
+  --color-undecary: #00db16;
+  --color-doctary: #002dd0;
+  --color-undocary: #00daea;
 }
 
 @layer utilities {
@@ -122,10 +122,9 @@ body {
 }
 
 .driver-popup .leaflet-popup-content-wrapper {
-  background-color: var(--color-primary);
-  color: var(--color-senary);
+  background-color: var(--color-secondary);
+  color: var(--color-quinary);
   border-radius: 8px;
-  border: 1px solid var(--color-tertiary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
@@ -135,7 +134,7 @@ body {
 }
 
 .driver-popup .leaflet-popup-tip {
-  background-color: var(--color-primary);
+  background-color: var(--color-secondary);
 }
 
 .driver-popup .leaflet-popup-close-button {
