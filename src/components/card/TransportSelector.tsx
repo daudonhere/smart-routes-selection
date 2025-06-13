@@ -19,7 +19,7 @@ export default function TransportSelector() {
         onClick={() => handleSelection('motorbike')}
         className={`p-3 rounded-md flex justify-center items-center transition-all ${
           isActionLocked 
-            ? 'opacity-50 pointer-events-none' 
+            ? 'pointer-events-none' 
             : 'cursor-pointer hover:bg-gray-600'
         } ${transportMode === 'motorbike' && !isActionLocked ? 'background-tertiary color-primary' : 'background-quaternary color-senary'}`}
       >
@@ -29,7 +29,7 @@ export default function TransportSelector() {
         onClick={() => handleSelection('car')}
         className={`p-3 rounded-md flex justify-center items-center transition-all ${
           isActionLocked 
-            ? 'opacity-50 pointer-events-none' 
+            ? 'pointer-events-none' 
             : 'cursor-pointer hover:bg-gray-600'
         } ${transportMode === 'car' && !isActionLocked ? 'background-tertiary color-primary' : 'background-quaternary color-senary'}`}
       >
@@ -39,7 +39,7 @@ export default function TransportSelector() {
         onClick={() => handleSelection('truck')}
         className={`p-3 rounded-md flex justify-center items-center transition-all ${
           isActionLocked 
-            ? 'opacity-50 pointer-events-none' 
+            ? 'pointer-events-none' 
             : 'cursor-pointer hover:bg-gray-600'
         } ${transportMode === 'truck' && !isActionLocked ? 'background-tertiary color-primary' : 'background-quaternary color-senary'}`}
       >

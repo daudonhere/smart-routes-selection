@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { AppState, SimulationSlice, Driver, LocationInfo, RouteInfo, DriverDirection } from '@/libs/types';
 import { fetchOptimalRoutes } from '@/libs/routing';
-import { processRawRouteToInfo } from '../helpers';
+import { processRawRouteToInfo } from '@/libs/helpers';
 
 let animationFrameId: number | null = null;
 

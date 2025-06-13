@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 import { AppState, RouteSlice, RouteInfo } from '@/libs/types';
 import { fetchOptimalRoutes } from '@/libs/routing';
 import { resolveLocationToInfo } from '@/libs/geocoding';
-import { processRawRouteToInfo } from '../helpers';
+import { processRawRouteToInfo } from '@/libs/helpers';
 
 export const createRouteSlice: StateCreator<AppState, [], [], RouteSlice> = (set, get) => ({
   departurePoint: null,
