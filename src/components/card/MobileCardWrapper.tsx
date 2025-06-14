@@ -14,7 +14,7 @@ const currencies = [
   { code: 'CNY', name: 'YUAN', symbol: '¥' },
 ];
 
-export default function CardWrapper() {
+export default function MobileCardWrapper() {
   const routes = useRouteStore((state) => state.routes);
   const isRouteLoading = useRouteStore((state) => state.isRouteLoading);
   const [pricePerKm, setPricePerKm] = useState('');
@@ -31,7 +31,7 @@ export default function CardWrapper() {
 
   return (
     <div className="flex flex-col gap-2 h-full">
-      <TransportSelector />
+      {/* <TransportSelector /> */}
       <div className="flex flex-row gap-2 w-full">
         <RouteForm 
           pricePerKm={pricePerKm}

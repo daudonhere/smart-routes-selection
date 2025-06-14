@@ -152,7 +152,7 @@ export default function MapComponent({
           positions={route.coordinates}
           pathOptions={{
             color: route.isPrimary ? '#ffdd00' : '#797979',
-            weight: route.isPrimary ? 8 : 5,
+            weight: route.isPrimary ? 4 : 2,
             opacity: route.isPrimary ? 1 : 0.8,
           }}
           eventHandlers={{
@@ -183,7 +183,7 @@ export default function MapComponent({
                   <span className="font-bold">Hei im intersted with your offer, </span>
                   <span className="font-bold">Im going to your location soon!</span>
                   {isPickupPhase && pickupRoute && (
-                    <div className='flex flex-row gap-2 mt-2 w-full items-center justify-center'>
+                    <div className='flex flex-row gap-1 mt-2 w-full items-center justify-center'>
                       <Route size={16} className='color-senary' />
                       <span className="font-bold text-xs color-quinary">{pickupRoute.distance.toFixed(1)} Km</span>
                       <Timer size={16} className='color-senary' />
