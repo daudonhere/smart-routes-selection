@@ -1,5 +1,8 @@
+'use client';
+
 import { useRouteStore } from "@/stores/routesStore";
 import AutocompleteInput from "./AutocompleteInput";
+import SelectCurrency from "./SelectCurrency";
 
 interface RouteFormProps {
   pricePerKm: string;
@@ -37,8 +40,8 @@ export default function RouteForm({
   };
 
   return (
-    <fieldset disabled={isActionLocked} className="flex flex-col gap-2 w-full disabled:cursor-not-allowed">
-      <form onSubmit={handleFormSubmit} className="flex flex-col gap-2 w-full">
+    <fieldset disabled={isActionLocked} className="flex flex-col w-full disabled:cursor-not-allowed">
+      <form onSubmit={handleFormSubmit} className="flex flex-col w-full gap-2 2xl:gap-2.5">
         <AutocompleteInput
           value={departureAddress}
           onValueChange={setDepartureFromInput}
@@ -53,47 +56,43 @@ export default function RouteForm({
         />
 
         {(transportMode === 'car' || transportMode === 'truck') && (
-          <div className="ml-1 flex items-center justify-start">
+          <div className="flex items-center ml-1 justify-start">
             <input
               type="checkbox"
               id="includeTolls"
               checked={includeTolls}
               onChange={(e) => setIncludeTolls(e.target.checked)}
-              className="h-4 w-4 rounded border line-senary background-tertiary color-quinary focus:ring-tertiary disabled:cursor-not-allowed "
+              className="h-4 w-4 rounded border line-senary background-tertiary disabled:cursor-not-allowed accent-yellow-400"
             />
-            <label htmlFor="includeTolls" className="ml-2 block text-sm color-senary font-semibold">
+            <label htmlFor="includeTolls" className="block ml-2 font-semibold color-senary text-xs 2xl:text-base">
               Toll Road
             </label>
           </div>
         )}
 
         <div className="flex flex-row items-center gap-2">
-          <select
-            value={selectedCurrency}
-            disabled={isButtonDisabled}
-            onChange={(e) => setSelectedCurrency(e.target.value)}
-            className="cursor-pointer px-2 py-1 text-sm font-bold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary"
-          >
-            {currencies.map(c => 
-              <option key={c.code} value={c.code} className='background-tertiary color-quinary text-sm font-semibold'>
-                  {c.name}
-              </option>
-            )}
-          </select>
+           <div className="w-[35%]">
+             <SelectCurrency
+              options={currencies}
+              value={selectedCurrency}
+              onChange={setSelectedCurrency}
+              placeholder="Currency"
+            />
+           </div>
           <input
             type="text"
             inputMode="decimal"
             value={pricePerKm}
             onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setPricePerKm(e.target.value)}
             placeholder="Price/KM"
-            className="w-full py-1 px-2 text-sm font-bold background-tertiary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary"
+            className="w-[65%] p-1.5 font-bold background-tertiary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary text-sm lg:text-xs 2xl:text-lg"
           />
         </div>
 
         <button
           type="submit"
           disabled={isButtonDisabled}
-          className="cursor-pointer w-full mt-1 background-senary hover:bg-yellow-300 color-primary font-semibold py-1.5 px-4 rounded-sm focus:outline-none focus:shadow-outline disabled:cursor-not-allowed disabled:opacity-70 transition-colors"
+          className="w-full mt-1 p-2 font-semibold background-senary color-primary rounded-sm cursor-pointer transition-colors hover:bg-yellow-300 focus:outline-none focus:shadow-outline disabled:cursor-not-allowed disabled:opacity-80 text-sm lg:p-1.5 2xl:text-lg"
         >
           {isRouteLoading ? 'Calculating...' : 'Search'}
         </button>

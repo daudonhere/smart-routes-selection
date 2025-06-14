@@ -61,17 +61,19 @@ export default function AutocompleteInput({ value, onValueChange, onSelect, plac
                 onBlur={handleBlur}
                 placeholder={placeholder}
                 autoComplete="off"
-                className="w-full py-1 px-2 text-sm font-semibold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-300"
+                className="w-full p-1.5 font-semibold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-300 text-sm lg:text-xs lg:p-1.5 2xl:text-lg 2xl:p-2"
             />
-            {isLoading && <Loader2 className="absolute top-2 right-3 h-5 w-5 color-quinary animate-spin" />}
+            {isLoading && (
+                <Loader2 className="absolute h-4 w-4 color-quinary animate-spin top-1.5 right-2 2xl:top-3 2xl:right-4" />
+            )}
             
             {suggestions.length > 0 && isFocused && (
-                <ul className="absolute z-20 w-full mt-1 background-tertiary color-quinary border line-senary rounded-sm shadow-lg max-h-60 overflow-auto">
+                <ul className="absolute z-20 w-full mt-2 background-tertiary color-quinary border line-senary rounded-sm shadow-lg max-h-60 overflow-auto">
                     {suggestions.map((item, index) => (
                         <li
                             key={`${item.name}-${index}`}
                             onClick={() => handleSelect(item)}
-                            className="px-3 py-2 text-sm font-semibold color-quinary cursor-pointer hover:bg-yellow-300 hover:text-black"
+                            className="p-1.5 border-b line-nonary font-semibold color-quinary cursor-pointer hover:bg-yellow-300 hover:text-black text-sm lg:text-xs 2xl:text-lg"
                         >
                             {item.name}
                         </li>
