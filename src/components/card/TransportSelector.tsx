@@ -14,9 +14,8 @@ export default function TransportSelector() {
   }
 
   return (
-    <div className="flex flex-row w-full justify-center p-3 gap-4 2xl:gap-6">
-      <div 
-        onClick={() => handleSelection('motorbike')}
+    <div className="flex flex-row w-full justify-center p-3 gap-4 lg:gap-3 2xl:gap-6">
+      <div onClick={() => handleSelection('motorbike')}
         className={`flex justify-center items-center p-2 rounded-md transition-all 2xl:p-4 ${
           isActionLocked 
             ? 'cursor-not-allowed' 
@@ -26,8 +25,7 @@ export default function TransportSelector() {
         <Bike size={24} className="block 2xl:hidden" />
         <Bike size={32} className="hidden 2xl:block" />
       </div>
-      <div
-        onClick={() => handleSelection('car')}
+      <div onClick={() => handleSelection('car')}
         className={`flex justify-center items-center p-2 rounded-md transition-all 2xl:p-4 ${
           isActionLocked 
             ? 'cursor-not-allowed' 
@@ -37,8 +35,7 @@ export default function TransportSelector() {
         <Car size={24} className="block 2xl:hidden" />
         <Car size={32} className="hidden 2xl:block" />
       </div>
-      <div
-        onClick={() => handleSelection('truck')}
+      <div onClick={() => handleSelection('truck')}
         className={`flex justify-center items-center p-2 rounded-md transition-all 2xl:p-4 ${
           isActionLocked 
             ? 'cursor-not-allowed' 

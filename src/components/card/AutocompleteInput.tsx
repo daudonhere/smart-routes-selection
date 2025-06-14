@@ -61,7 +61,7 @@ export default function AutocompleteInput({ value, onValueChange, onSelect, plac
                 onBlur={handleBlur}
                 placeholder={placeholder}
                 autoComplete="off"
-                className="w-full p-1.5 font-semibold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-300 text-sm 2xl:text-lg 2xl:p-2"
+                className="w-full p-1.5 font-semibold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-300 text-sm lg:text-xs lg:p-1.5 2xl:text-lg 2xl:p-2"
             />
             {isLoading && (
                 <Loader2 className="absolute h-4 w-4 color-quinary animate-spin top-1.5 right-2 2xl:top-3 2xl:right-4" />
@@ -73,7 +73,7 @@ export default function AutocompleteInput({ value, onValueChange, onSelect, plac
                         <li
                             key={`${item.name}-${index}`}
                             onClick={() => handleSelect(item)}
-                            className="p-1.5 border-b line-nonary font-semibold color-quinary cursor-pointer hover:bg-yellow-300 hover:text-black text-sm 2xl:text-lg"
+                            className="p-1.5 border-b line-nonary font-semibold color-quinary cursor-pointer hover:bg-yellow-300 hover:text-black text-sm lg:text-xs 2xl:text-lg"
                         >
                             {item.name}
                         </li>

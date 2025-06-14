@@ -30,9 +30,12 @@ export default function DesktopCardWrapper() {
   }
 
   return (
-    <div className="flex flex-col gap-2 h-full w-full py-1.5 px-2.5 2xl:px-6 2xl:py-2.5 2xl:gap-6">
+    <div className="flex flex-col gap-2 h-full w-full py-1.5 px-2.5
+      lg:px-2 lg:py-1 lg:gap-1
+      2xl:px-6 2xl:py-2.5 2xl:gap-6
+    ">
       <TransportSelector />
-      <div className="flex flex-row gap-2 w-full">
+      <div className="flex flex-row gap-2 lg:gap-1 w-full">
         <RouteForm 
           pricePerKm={pricePerKm}
           setPricePerKm={setPricePerKm}
@@ -43,7 +46,7 @@ export default function DesktopCardWrapper() {
       </div>
       <div className="flex flex-1 flex-col py-1 w-full overflow-y-auto">
         {routes.length > 0 && !isRouteLoading && (
-          <div className="flex flex-col gap-2 2xl:gap-4">
+          <div className="flex flex-col gap-2 lg;gap-1 2xl:gap-4">
             {routes.map((route) => (
               <RouteResultCard 
                 key={route.id}

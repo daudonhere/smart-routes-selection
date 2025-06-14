@@ -74,10 +74,10 @@ export default function RouteForm({
             value={selectedCurrency}
             disabled={isButtonDisabled}
             onChange={(e) => setSelectedCurrency(e.target.value)}
-            className="p-1.5 font-bold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none cursor-pointer focus:border-yellow-200 text-sm 2xl:text-lg"
+            className="p-1.5 font-bold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none cursor-pointer focus:border-yellow-200 text-sm lg:text-xs 2xl:text-lg"
           >
             {currencies.map(c => 
-              <option key={c.code} value={c.code} className='background-tertiary border-b line-nonary font-semibold color-quinary text-sm 2xl:text-sm'>
+              <option key={c.code} value={c.code} className='background-tertiary border-b line-nonary font-semibold color-quinary text-sm lg:text-xs 2xl:text-sm'>
                   {c.name}
               </option>
             )}
@@ -88,14 +88,14 @@ export default function RouteForm({
             value={pricePerKm}
             onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setPricePerKm(e.target.value)}
             placeholder="Price/KM"
-            className="w-full p-1.5 font-bold background-tertiary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary text-sm 2xl:text-lg"
+            className="w-full p-1.5 font-bold background-tertiary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary text-sm lg:text-xs 2xl:text-lg"
           />
         </div>
 
         <button
           type="submit"
           disabled={isButtonDisabled}
-          className="w-full mt-1 p-2 font-semibold background-senary color-primary rounded-sm cursor-pointer transition-colors hover:bg-yellow-300 focus:outline-none focus:shadow-outline disabled:cursor-not-allowed disabled:opacity-80 text-sm 2xl:text-lg"
+          className="w-full mt-1 p-2 font-semibold background-senary color-primary rounded-sm cursor-pointer transition-colors hover:bg-yellow-300 focus:outline-none focus:shadow-outline disabled:cursor-not-allowed disabled:opacity-80 text-sm lg:p-1.5 2xl:text-lg"
         >
           {isRouteLoading ? 'Calculating...' : 'Search'}
         </button>
