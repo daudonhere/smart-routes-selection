@@ -30,7 +30,8 @@ export default function DesktopCardWrapper() {
   }
 
   return (
-    <div className="flex flex-col gap-2 h-full w-full py-1.5 px-2.5
+    <div className="flex flex-col gap-2 h-full w-full py-1.5 px-2 
+      xl:py-2 xl:px-4 xl:gap-1.2
       lg:px-2 lg:py-1 lg:gap-1
       2xl:px-6 2xl:py-2.5 2xl:gap-6
     ">

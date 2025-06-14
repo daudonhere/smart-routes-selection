@@ -2,6 +2,7 @@
 
 import { useRouteStore } from "@/stores/routesStore";
 import AutocompleteInput from "./AutocompleteInput";
+import SelectCurrency from "./SelectCurrency";
 
 interface RouteFormProps {
   pricePerKm: string;
@@ -61,7 +62,7 @@ export default function RouteForm({
               id="includeTolls"
               checked={includeTolls}
               onChange={(e) => setIncludeTolls(e.target.checked)}
-              className="h-4 w-4 rounded border line-senary background-tertiary color-quinary focus:ring-tertiary disabled:cursor-not-allowed"
+              className="h-4 w-4 rounded border line-senary background-tertiary disabled:cursor-not-allowed accent-yellow-400"
             />
             <label htmlFor="includeTolls" className="block ml-2 font-semibold color-senary text-xs 2xl:text-base">
               Toll Road
@@ -70,25 +71,21 @@ export default function RouteForm({
         )}
 
         <div className="flex flex-row items-center gap-2">
-          <select
-            value={selectedCurrency}
-            disabled={isButtonDisabled}
-            onChange={(e) => setSelectedCurrency(e.target.value)}
-            className="p-1.5 font-bold background-tertiary color-quinary border line-senary rounded-sm shadow-sm outline-none cursor-pointer focus:border-yellow-200 text-sm lg:text-xs 2xl:text-lg"
-          >
-            {currencies.map(c => 
-              <option key={c.code} value={c.code} className='background-tertiary border-b line-nonary font-semibold color-quinary text-sm lg:text-xs 2xl:text-sm'>
-                  {c.name}
-              </option>
-            )}
-          </select>
+           <div className="w-[35%]">
+             <SelectCurrency
+              options={currencies}
+              value={selectedCurrency}
+              onChange={setSelectedCurrency}
+              placeholder="Currency"
+            />
+           </div>
           <input
             type="text"
             inputMode="decimal"
             value={pricePerKm}
             onChange={(e) => /^\d*\.?\d*$/.test(e.target.value) && setPricePerKm(e.target.value)}
             placeholder="Price/KM"
-            className="w-full p-1.5 font-bold background-tertiary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary text-sm lg:text-xs 2xl:text-lg"
+            className="w-[65%] p-1.5 font-bold background-tertiary border line-senary rounded-sm shadow-sm outline-none focus:border-yellow-200 color-quinary text-sm lg:text-xs 2xl:text-lg"
           />
         </div>
 
