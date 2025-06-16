@@ -1,6 +1,7 @@
 "use client";
 
 import DesktopCardWrapper from "@/components/card/DesktopCardWrapper";
+import MobileCardWrapper from "@/components/card/MobileCardWrapper";
 import MapWrapper from "@/components/maps/MapWrapper";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouteStore } from "@/stores/routesStore";
@@ -33,7 +34,7 @@ export default function Home() {
           <MapWrapper/>
         </div>
         <div className="flex lg:hidden h-[40%] w-full p-4 background-secondary z-20 border-t line-tertiary">
-            <DesktopCardWrapper />
+            <MobileCardWrapper />
         </div>
       </div>
     </main>
